@@ -1,0 +1,26 @@
+{
+    "project_type": "javascript",
+
+    "debugMode" : 1,
+    "showFPS" : true,
+    "frameRate" : 60,
+    "id" : "gameCanvas",
+    "renderMode" : 0,
+    "engineDir":"frameworks/cocos2d-html5",
+
+    "modules" : ["cocos2d"],
+
+    "jsList" : [
+        "src/resource.js",
+        "src/global.js",
+        "src/bubble.js",
+        "src/hero.js",
+        "src/gameController.js",
+        "src/item.js",
+        "src/itemController.js",
+        "src/gameMenuLayer.js",
+        "src/gameOverLayer.js",
+        "src/gameScene.js",
+        "src/bulletController.js"
+    ]
+}
