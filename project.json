@@ -13,7 +13,6 @@
     "jsList" : [
         "src/resource.js",
         "src/global.js",
-        "src/bubble.js",
         "src/hero.js",
         "src/gameController.js",
         "src/item.js",
