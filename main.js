@@ -54,7 +54,7 @@ cc.game.onStart = function(){
     cc.director.setDisplayStats(false);
     //load resources
     cc.LoaderScene.preload(g_resources, function () {
-        cc.director.runScene(new GameScene());
+        cc.director.runScene(new GameScene(true));
     }, this);
 };
 cc.game.run();

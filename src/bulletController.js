@@ -134,13 +134,13 @@ var BasicBullet = cc.Sprite.extend({
         this._super(bubblefilename);
         this.mask = 0;  //1 is Role A, 2 is Role B, 0 is nobody
         this.speed = {x: BULLET_SPEED, y: BULLET_SPEED}; //traveling speed
-        this.duration = 10;
+        this.duration = 1.5;
         this.curDuration = 0;
         this.radius = BULLET_RADUIS;
         this.mass = 100;
     },
     onTimeOut: function(){
-        this.runAction(cc.sequence(cc.fadeOut(1), cc.removeSelf()));
+        this.runAction(cc.removeSelf());
     },
     onCollide: function(target){
         target.losslife();
@@ -175,7 +175,6 @@ BasicBullet.create = function(mask, pos, angle){
     sprite.mask = mask;
     sprite.speed.x *= Math.sin(angle);
     sprite.speed.y *= Math.cos(angle);
-
     var tempMass = (cc.random0To1() + 0.5)*100;
     sprite.mass = tempMass;
     //sprite.mass.x = Math.abs(tempMass * Math.sin(angle));
@@ -190,8 +189,8 @@ BasicBullet.create = function(mask, pos, angle){
         bulletController.bulletsB.push(sprite);
     }
     currentLayer.addChild(sprite, 1);
-
     audioEngine.playEffect(res.audio_shoot_1);
+
     return sprite;
 };
 

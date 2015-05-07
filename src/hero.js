@@ -95,11 +95,16 @@ var Hero = cc.Node.extend({
             if (this.colortype == g_ColorType.blue) mask = 1;
             else mask = 2;
             var angle = cc.degreesToRadians(this.tower_angel);
-            var pos = cc.pRotateByAngle(cc.p(BULLET_RADUIS + this.radius, 0), cc.p(0,0), cc.PI/2 - angle);
-            pos = cc.pAdd(this.getPosition(), pos);
+            var pos1 = cc.pRotateByAngle(cc.p(BULLET_RADUIS + this.radius, 0), cc.p(0,0), cc.PI/2 - angle);
+            pos = cc.pAdd(this.getPosition(), pos1);
             bulletController.spawnBullet(1, mask, pos, angle);
             this.lastCDTime = this.cd;
             this.isCDing = true;
+
+            var particle = new cc.ParticleSystem(res.shoot);
+            this.addChild(particle, 10);
+            particle.setPosition(pos1);
+            particle.setAutoRemoveOnFinish(true);
         }
     },
     setSpeed2: function()

@@ -19,7 +19,7 @@ var GameSceneLayer = cc.Layer.extend({
     key_slash: null,
     controllabel: null,
     shootlabel: null,
-    ctor:function () {
+    ctor:function (flag) {
 
         this._super();
 
@@ -64,9 +64,14 @@ var GameSceneLayer = cc.Layer.extend({
             this.red_lifes[i] = red_life;
         }
 
-        this.initIntroduce(7);
-        this.menu_layer = new GameMenuLayer();
-        this.addChild(this.menu_layer,100);
+        if(flag) {
+            this.initIntroduce(7);
+            this.menu_layer = new GameMenuLayer();
+            this.addChild(this.menu_layer,100);
+        }
+        else{
+            this.onStartGame();
+        }
 
         return true;
     },
@@ -119,12 +124,12 @@ var GameSceneLayer = cc.Layer.extend({
             event: cc.EventListener.KEYBOARD,
             onKeyPressed:  function(keyCode, event){
                 var target = event.getCurrentTarget();
-                if (target.shootlabel.visible) target.shootlabel.runAction(cc.sequence(cc.fadeOut(5), cc.removeSelf()));
+                if (target.shootlabel && target.shootlabel.visible) target.shootlabel.runAction(cc.sequence(cc.fadeOut(5), cc.removeSelf()));
                 if(keyCode == 90)
                 {
                     if(!target.temp_90_pressed && !target.temp_88_pressed)
                     {
-                        if(target.key_z.visible) target.key_z.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
+                        if(target.key_z && target.key_z.visible) target.key_z.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_90_pressed = true;
                         target.blue.setStatus(STATUS.ROLL);
@@ -136,7 +141,7 @@ var GameSceneLayer = cc.Layer.extend({
                 {
                     if(!target.temp_88_pressed && !target.temp_90_pressed)
                     {
-                        if(target.key_x.visible) target.key_x.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
+                        if(target.key_x && target.key_x.visible) target.key_x.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_88_pressed = true;
                         if(!target.blue.isCDing) target.blue.shoot();
@@ -147,7 +152,7 @@ var GameSceneLayer = cc.Layer.extend({
                 {
                     if(!target.temp_190_pressed && !target.temp_191_pressed)
                     {
-                        if(target.key_dot.visible) target.key_dot.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
+                        if(target.key_dot && target.key_dot.visible) target.key_dot.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_190_pressed = true;
                         target.red.setStatus(STATUS.ROLL);
@@ -159,7 +164,7 @@ var GameSceneLayer = cc.Layer.extend({
                 {
                     if(!target.temp_191_pressed && !target.temp_190_pressed)
                     {
-                        if(target.key_slash.visible) target.key_slash.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
+                        if(target.key_slash && target.key_slash.visible) target.key_slash.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_191_pressed = true;
                         if(!target.red.isCDing) target.red.shoot();
@@ -214,8 +219,11 @@ var GameSceneLayer = cc.Layer.extend({
     },
     onStartGame: function()
     {
-        this.makeIntroduceEasy();
-        this.menu_layer.removeFromParent();
+        if(this.menu_layer) {
+            this.makeIntroduceEasy();
+            this.menu_layer.removeFromParent();
+        }
+
         //add Custom Event
         var lifeminuslistener = cc.EventListener.create({
             event: cc.EventListener.CUSTOM,
@@ -303,7 +311,7 @@ var GameSceneLayer = cc.Layer.extend({
                 this.addChild(star,2);
                 star.runAction(cc.sequence(cc.fadeIn(1.0),cc.delayTime(0.5),cc.fadeOut(1.0),cc.removeSelf()));
             }
-        }.bind(this),0.1);
+        }.bind(this),2.5);
 
         this.initKeyBoardControl();
     },
@@ -317,9 +325,14 @@ var GameSceneLayer = cc.Layer.extend({
 });
 
 var GameScene = cc.Scene.extend({
+    _newGame:false,
+    ctor:function(flag){
+        this._super();
+        this._newGame = flag;
+    },
     onEnter:function () {
         this._super();
-        var layer = new GameSceneLayer();
+        var layer = new GameSceneLayer(this._newGame);
         this.addChild(layer);
         currentLayer = layer;
     }

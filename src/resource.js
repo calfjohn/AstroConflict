@@ -36,7 +36,8 @@ var res = {
     key_slash: "res/key_slash.png",
     key_X: "res/key_X.png",
     key_Z: "res/key_Z.png",
-    logo_png: "res/logo.png"
+    logo_png: "res/logo.png",
+    shoot: "res/shoot.plist"
 };
 
 var g_resources = [];

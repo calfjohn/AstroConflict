@@ -42,10 +42,8 @@ var GameMenuLayer = cc.Layer.extend({
         var logo = new cc.Sprite(res.logo_png);
         logo.setPosition(cc.p(baselayer.getContentSize().width/2, baselayer.getContentSize().height*4/5));
         baselayer.addChild(logo);
-        //add start
-        var startlabel = new cc.LabelTTF("Start", "", 32);
-        startlabel.setColor(cc.color(0, 255, 0));
-        var startitem = new cc.MenuItemLabel(startlabel,function(pSender){
+
+        var startitem = new cc.MenuItemImage(res.key_dot, res.key_dot, function(pSender){
             audioEngine.playEffect(res.audio_item_taken);
             this.runAction(cc.sequence(cc.moveBy(0.8,cc.p(0,cc.winSize.height*3/4)).easing(cc.easeBackOut()),cc.callFunc(function(sender){
                 currentLayer.onStartGame();

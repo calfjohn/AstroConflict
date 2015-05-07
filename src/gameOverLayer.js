@@ -25,9 +25,15 @@ var GameOverLayer = cc.Layer.extend({
         refreshlabel.setPosition(baselayer.getContentSize().width/2,baselayer.getContentSize().height/4);
         baselayer.addChild(refreshlabel);
 
-        var refreshlabel1 = new cc.LabelTTF("F5", "", 40);
-        refreshlabel1.setColor(cc.color(0, 255, 0));
-        refreshlabel1.setPosition(baselayer.getContentSize().width/2,baselayer.getContentSize().height/4);
-        baselayer.addChild(refreshlabel1);
+        var startitem = new cc.MenuItemImage(res.key_dot, res.key_dot, function(pSender){
+            audioEngine.playEffect(res.audio_item_taken);
+            this.runAction(cc.sequence(cc.moveBy(0.8,cc.p(0,cc.winSize.height*3/4)).easing(cc.easeBackOut()),cc.callFunc(function(sender){
+                cc.director.runScene(new GameScene(false));
+            })));
+        },this);
+        startitem.runAction(cc.sequence(cc.scaleTo(0.8,1.2),cc.scaleTo(0.8,0.8)).repeatForever());
+        var startMenu = new cc.Menu(startitem);
+        startMenu.setPosition(baselayer.getContentSize().width/2,baselayer.getContentSize().height/4);
+        baselayer.addChild(startMenu);
     }
 });
