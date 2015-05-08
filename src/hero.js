@@ -1,5 +1,5 @@
 
-var CONST_MOVE_SPEED = 100;
+var CONST_MOVE_SPEED = 150;
 var CONST_INCREASE_BASE_ANGEL = 3;
 var CONST_INCREASE_TOWER_ANGEL = 3;
 var CONST_CD_TIME = 2;
@@ -210,7 +210,15 @@ var Hero = cc.Node.extend({
             var gameoverLayer = new GameOverLayer(filename);
             currentLayer.addChild(gameoverLayer,100);
         }
-    }
 
+        this.explosion();
+    },
+
+    explosion: function(pos){
+        var particle = new cc.ParticleSystem(res.lighting);
+        this.addChild(particle, 10);
+        particle.setPosition(cc.p(0,0));
+        particle.setAutoRemoveOnFinish(true);
+    }
 
 });

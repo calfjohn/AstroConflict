@@ -37,7 +37,8 @@ var res = {
     key_X: "res/key_X.png",
     key_Z: "res/key_Z.png",
     logo_png: "res/logo.png",
-    shoot: "res/shoot.plist"
+    shoot: "res/shoot.plist",
+    lighting: "res/lightning.plist"
 };
 
 var g_resources = [];
