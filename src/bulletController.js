@@ -20,11 +20,11 @@ var bulletController = {
             obj1.setPosition(cc.pRotateByAngle(cc.pAdd(cc.p(distance1,0),blue_Pos),blue_Pos,angel));
             obj2.setPosition(cc.pRotateByAngle(cc.pAdd(cc.p(-distance2,0),red_Pos),red_Pos,angel));
 
-            if(obj2.life)
-            {
-                obj1.curDuration = obj1.duration + 1;
-                obj1.onCollide(obj2);
-            }
+            if(obj1.duration) obj1.curDuration = obj1.duration + 1;
+            if(obj2.duration) obj2.curDuration = obj2.duration + 1;
+
+            if(obj1.duration && obj2.duration) this.collapse(cc.pMidpoint(blue_Pos, red_Pos));
+            if(obj2.life) obj1.onCollide(obj2);
         }
         //var obj1Momentum = {x:obj1.speed.x * obj1.mass.x, y:obj1.speed.y * obj1.mass.x};
         //var obj2Momentum = {x:obj2.speed.x * obj2.mass.y, y:obj2.speed.y * obj2.mass.y};
@@ -91,6 +91,13 @@ var bulletController = {
     attacks: function(dt){
         this.proccessArray(this.bulletsA, 1, dt);
         this.proccessArray(this.bulletsB, 2, dt);
+    },
+
+    collapse: function(pos){
+        var particle = new cc.ParticleSystem(res.collapse);
+        currentLayer.addChild(particle, 10);
+        particle.setPosition(pos);
+        particle.setAutoRemoveOnFinish(true);
     }
 };
 
@@ -175,7 +182,7 @@ BasicBullet.create = function(mask, pos, angle){
     sprite.mask = mask;
     sprite.speed.x *= Math.sin(angle);
     sprite.speed.y *= Math.cos(angle);
-    var tempMass = (cc.random0To1() + 0.5)*100;
+    var tempMass = (cc.random0To1() + 1)*100;
     sprite.mass = tempMass;
     //sprite.mass.x = Math.abs(tempMass * Math.sin(angle));
     //sprite.mass.y = Math.abs(tempMass * Math.cos(angle));
