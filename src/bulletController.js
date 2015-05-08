@@ -1,5 +1,5 @@
 var currentLayer;
-var BULLET_SPEED = 300;
+var BULLET_SPEED = 400;
 var BULLET_RADUIS = 20;
 
 var bulletController = {
@@ -61,7 +61,7 @@ var bulletController = {
 
             if(mask === 1) {
                 var target = currentLayer.blue;
-                this.collision(bullet, target);
+                if(!target.stealth) this.collision(bullet, target);
                 //var dist = cc.pDistance(bullet.getPosition(), target.getPosition());
                 //if (dist < bullet.radius  + target.radius) {
                 //    bullet.onCollide(target);
@@ -70,7 +70,7 @@ var bulletController = {
             }
             else if(mask ===2){
                 var target = currentLayer.red;
-                this.collision(bullet, target);
+                if(!target.stealth) this.collision(bullet, target);
                 //var dist = cc.pDistance(bullet.getPosition(), target.getPosition());
                 //if (dist < bullet.radius + target.radius) {
                 //    bullet.onCollide(target);
@@ -117,7 +117,8 @@ bulletController.weakBullet = function(mask){
     var bulletsX = mask === 1? this.bulletsA: this.bulletsB;
     for(var k = bulletsX.length-1; k >= 0; k--) {
         var bullet =  bulletsX[k];
-        bullet.curDuration += bullet.duration/2;
+        //bullet.curDuration += bullet.duration/2;
+        bullet.curDuration = bullet.duration + 1;
     }
 };
 
@@ -141,7 +142,7 @@ var BasicBullet = cc.Sprite.extend({
         this._super(bubblefilename);
         this.mask = 0;  //1 is Role A, 2 is Role B, 0 is nobody
         this.speed = {x: BULLET_SPEED, y: BULLET_SPEED}; //traveling speed
-        this.duration = 1.5;
+        this.duration = 3;
         this.curDuration = 0;
         this.radius = BULLET_RADUIS;
         this.mass = 100;
@@ -205,8 +206,8 @@ var scatterBullet = BasicBullet.extend({
 });
 
 scatterBullet.create = function(mask, pos, angle){
-    for(var i = 0; i < 6; i++){
+    for(var i = 0; i < 12; i++){
         BasicBullet.create(mask, pos, angle);
-        angle += cc.PI/3;
+        angle += cc.PI/6;
     }
 };

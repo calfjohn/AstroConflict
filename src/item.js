@@ -1,5 +1,5 @@
 
-var STYLE = {rush:0,disapper:1,sbullet:2,hpplus:3,cdhalf:4,speed2:5};
+var STYLE = {speed2:0,sbullet:1,disapper:2,cdhalf:3,rush:4,hpplus:5};
 
 var CONST_ITEMLIFE = 8;
 var CONST_BLINK_TIME = 2;
@@ -85,7 +85,8 @@ var Item = cc.Sprite.extend({
                 bulletController.changeAngle(mask);
                 break;
             case STYLE.disapper:
-                bulletController.weakBullet(mask);
+                //bulletController.weakBullet(mask);
+                who.setStealth();
                 break;
             case STYLE.sbullet:
                 bulletController.spawnBullet(2, mask, who.getPosition(), cc.degreesToRadians(who.tower_angel));
