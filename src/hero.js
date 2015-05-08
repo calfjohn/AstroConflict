@@ -2,9 +2,10 @@
 var CONST_MOVE_SPEED = 150;
 var CONST_INCREASE_BASE_ANGEL = 3;
 var CONST_INCREASE_TOWER_ANGEL = 3;
-var CONST_CD_TIME = 2;
+var CONST_CD_TIME = 1;
 var CONST_SPEED2_DURATION = 5;
 var CONST_CDHALF_DURATION = 5;
+var CONST_STEALTH_DURATION = 10;
 var CONST_TOWER_TO_BASE_DIS = 20;
 var CONST_LIFE = 5;
 var STATUS =  {IDLE: "idle", MOVE: "move", ROLL: "roll", SHOOT: "shoot", DEAD: "dead", WIN: "win"};
@@ -28,6 +29,7 @@ var Hero = cc.Node.extend({
     speed: CONST_MOVE_SPEED,
     cd: CONST_CD_TIME,
     life: CONST_LIFE,
+    stealth: false,
     ctor: function(colortype) {
         this._super();
 
@@ -67,7 +69,7 @@ var Hero = cc.Node.extend({
         this.addChild(this.base,1);
 
         this.base_light = new cc.Sprite(baselightFrameName);
-        this.addChild(this.base_light,2)
+        this.addChild(this.base_light,2);
 
         this.tower = new cc.Sprite(towerFramName);
         this.addChild(this.tower,3);
@@ -121,9 +123,9 @@ var Hero = cc.Node.extend({
     {
        if(this.cd  == CONST_CD_TIME)
        {
-           this.cd = CONST_CD_TIME/2;
+           this.cd = 0.1;//CONST_CD_TIME/2;
            this.scheduleOnce(function(dt){
-
+                this.cd = CONST_CD_TIME;
            },CONST_CDHALF_DURATION);
        }
     },
@@ -196,6 +198,21 @@ var Hero = cc.Node.extend({
             cc.eventManager.dispatchEvent(event);
         }
     },
+
+    setStealth: function(){
+        if(!this.stealth)
+        {
+            this.stealth = true;
+            this.base.setOpacity(100);
+            this.tower.setOpacity(100);
+            this.scheduleOnce(function(dt){
+                this.stealth = false;
+                this.tower.setOpacity(255);
+                this.base.setOpacity(255);
+            },CONST_STEALTH_DURATION);
+        }
+    },
+
     losslife: function(){
         this.life --;
         var event = new cc.EventCustom("lifeminus_event");
