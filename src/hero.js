@@ -29,6 +29,7 @@ var Hero = cc.Node.extend({
     speed: CONST_MOVE_SPEED,
     cd: CONST_CD_TIME,
     life: CONST_LIFE,
+
     stealth: false,
     ctor: function(colortype) {
         this._super();
@@ -132,6 +133,9 @@ var Hero = cc.Node.extend({
     updateMove: function(dt){
         var cur_pos = this.getPosition();
         var base_angel_degrees = cc.degreesToRadians(this.base_angel);
+        //var new_pos = cc.p(0,0);
+        //new_pos.x = cur_pos.x + (this.isLeftPressed ? -1:0 + this.isRightPressed ? 1:0)*this.speed*dt;
+        //new_pos.y = cur_pos.y + (this.isUpPressed ? 1:0 + this.isDownPressed ? -1:0)*this.speed*dt;
         var new_pos = cc.p(cur_pos.x + this.speed * Math.sin(base_angel_degrees)*dt,cur_pos.y + this.speed * Math.cos(base_angel_degrees)*dt);
         this.setPosition(new_pos);
     },
@@ -140,20 +144,24 @@ var Hero = cc.Node.extend({
         if(this.isClockWise)
             new_angel = (this.tower_angel + CONST_INCREASE_TOWER_ANGEL)%360;
         else
-            new_angel = (this.tower_angel - CONST_INCREASE_BASE_ANGEL)%360;
+            new_angel = (this.tower_angel - CONST_INCREASE_TOWER_ANGEL)%360;
         this.tower_angel = new_angel;
         this.tower.setRotation(new_angel);
         this.tower_light.setRotation(new_angel);
+
     },
     updateBaseRoll: function(dt){
         var new_angel;
+        //if(this.getTargetAngel()-this.base_angel<=180)
+        //    this.isClockWise = true;
+        //else
+        //    this.isClockWise = false;
         if(this.isClockWise)
             new_angel = (this.base_angel + CONST_INCREASE_BASE_ANGEL)%360;
         else
             new_angel = (this.base_angel - CONST_INCREASE_BASE_ANGEL)%360;
         this.base_angel = new_angel;
         this.aimer.setRotation(new_angel);
-
     },
     update: function(dt){
         if(this.isCDing)
@@ -182,7 +190,6 @@ var Hero = cc.Node.extend({
             case STATUS.ROLL:
                 this.updateBaseRoll(dt);
                 this.updateTowerRoll(dt);
-                this.updateMove(dt);
                 break;
             case STATUS.SHOOT:
                 break;

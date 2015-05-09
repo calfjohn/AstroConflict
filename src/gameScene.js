@@ -132,8 +132,7 @@ var GameSceneLayer = cc.Layer.extend({
                         if(target.key_z && target.key_z.visible) target.key_z.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_90_pressed = true;
-                        target.blue.setStatus(STATUS.ROLL);
-                        target.blue.aimer.setVisible(true);
+                        target.blue.setStatus(STATUS.MOVE);
                         //cc.log("Key " + keyCode.toString() + " was pressed!");
                     }
                 }
@@ -144,7 +143,9 @@ var GameSceneLayer = cc.Layer.extend({
                         if(target.key_x && target.key_x.visible) target.key_x.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_88_pressed = true;
-                        if(!target.blue.isCDing) target.blue.shoot();
+                        target.blue.setStatus(STATUS.ROLL);
+                        target.blue.aimer.setVisible(true);
+                        //if(!target.blue.isCDing) target.blue.shoot();
                         //cc.log("Key " + keyCode.toString() + " was pressed!");
                     }
                 }
@@ -155,8 +156,8 @@ var GameSceneLayer = cc.Layer.extend({
                         if(target.key_dot && target.key_dot.visible) target.key_dot.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_190_pressed = true;
-                        target.red.setStatus(STATUS.ROLL);
-                        target.red.aimer.setVisible(true);
+                        target.red.setStatus(STATUS.MOVE);
+                        //target.red.aimer.setVisible(true);
                         //cc.log("Key " + keyCode.toString() + " was pressed!");
                     }
                 }
@@ -167,10 +168,33 @@ var GameSceneLayer = cc.Layer.extend({
                         if(target.key_slash && target.key_slash.visible) target.key_slash.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
 
                         target.temp_191_pressed = true;
-                        if(!target.red.isCDing) target.red.shoot();
+                        target.red.setStatus(STATUS.ROLL);
+                        target.red.aimer.setVisible(true);
+                        //if(!target.red.isCDing) target.red.shoot();
                         //cc.log("Key " + keyCode.toString() + " was pressed!");
                     }
                 }
+                //else if(keyCode == 65 && !g_IsAIEnable)//a
+                //{
+                //    target.blue.isLeftPressed = true;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 83 && !g_IsAIEnable)//s
+                //{
+                //    target.blue.isDownPressed = true;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 68 && !g_IsAIEnable)//d
+                //{
+                //    target.blue.isRightPressed = true;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 87 && !g_IsAIEnable)//w
+                //{
+                //    target.blue.isUpPressed = true;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+
             },
             onKeyReleased: function(keyCode, event){
                 var target = event.getCurrentTarget();
@@ -179,9 +203,8 @@ var GameSceneLayer = cc.Layer.extend({
                     if(target.temp_90_pressed)
                     {
                         target.temp_90_pressed = false;
-                        target.blue.isClockWise = !target.blue.isClockWise;
-                        target.blue.setStatus(STATUS.MOVE);
-                        target.blue.aimer.setVisible(false);
+                        //target.blue.isClockWise = !target.blue.isClockWise;
+                        target.blue.setStatus(STATUS.IDLE);
                         //cc.log("Key " + keyCode.toString() + " was released!");
                     }
                 }
@@ -190,7 +213,9 @@ var GameSceneLayer = cc.Layer.extend({
                     if(target.temp_88_pressed)
                     {
                         target.temp_88_pressed = false;
-                        target.blue.setStatus(STATUS.MOVE);
+                        target.blue.setStatus(STATUS.IDLE);
+                        if(!target.blue.isCDing) target.blue.shoot();
+                        target.red.aimer.setVisible(false);
                         //cc.log("Key " + keyCode.toString() + " was released!");
                     }
                 }
@@ -199,9 +224,8 @@ var GameSceneLayer = cc.Layer.extend({
                     if(target.temp_190_pressed)
                     {
                         target.temp_190_pressed = false;
-                        target.red.isClockWise = !target.red.isClockWise;
-                        target.red.setStatus(STATUS.MOVE);
-                        target.red.aimer.setVisible(false);
+                        //target.red.isClockWise = !target.red.isClockWise;
+                        target.red.setStatus(STATUS.IDLE);
                         //cc.log("Key " + keyCode.toString() + " was released!");
                     }
                 }
@@ -210,10 +234,32 @@ var GameSceneLayer = cc.Layer.extend({
                     if(target.temp_191_pressed)
                     {
                         target.temp_191_pressed = false;
-                        target.red.setStatus(STATUS.MOVE);
+                        target.red.setStatus(STATUS.IDLE);
+                        if(!target.red.isCDing) target.red.shoot();
+                        target.red.aimer.setVisible(false);
                         //cc.log("Key " + keyCode.toString() + " was released!");
                     }
                 }
+                //else if(keyCode == 65 && !g_IsAIEnable)//a
+                //{
+                //    target.blue.isLeftPressed = false;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 83 && !g_IsAIEnable)//s
+                //{
+                //    target.blue.isDownPressed = false;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 68 && !g_IsAIEnable)//d
+                //{
+                //    target.blue.isRightPressed = false;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
+                //else if(keyCode == 87 && !g_IsAIEnable)//w
+                //{
+                //    target.blue.isUpPressed = false;
+                //    target.blue.setStatus(STATUS.MOVE);
+                //}
             }
         }, this);
     },
