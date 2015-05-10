@@ -121,7 +121,7 @@ cc.textureCache = /** @lends cc.textureCache# */{
      */
     getKeyByTexture: function (texture) {
         for (var key in this._textures) {
-            if (this._textures[key] == texture) {
+            if (this._textures[key] === texture) {
                 return key;
             }
         }
@@ -150,7 +150,7 @@ cc.textureCache = /** @lends cc.textureCache# */{
         }
 
         if (!this._textureColorsCache[key])
-            this._textureColorsCache[key] = cc.generateTextureCacheForColor(texture);
+            this._textureColorsCache[key] = cc.Sprite.CanvasRenderCmd._generateTextureCacheForColor(texture);
         return this._textureColorsCache[key];
     },
 
@@ -197,7 +197,7 @@ cc.textureCache = /** @lends cc.textureCache# */{
 
         var locTextures = this._textures;
         for (var selKey in locTextures) {
-            if (locTextures[selKey] == texture) {
+            if (locTextures[selKey] === texture) {
                 locTextures[selKey].releaseTexture();
                 delete(locTextures[selKey]);
             }
@@ -247,7 +247,6 @@ cc.textureCache = /** @lends cc.textureCache# */{
      * @return {cc.Texture2D}
      */
     addUIImage: function (image, key) {
-
         cc.assert(image, cc._LogInfos.textureCache_addUIImage_2);
 
         if (key) {
@@ -258,7 +257,7 @@ cc.textureCache = /** @lends cc.textureCache# */{
         // prevents overloading the autorelease pool
         var texture = new cc.Texture2D();
         texture.initWithImage(image);
-        if ((key != null) && (texture != null))
+        if (key != null)
             this._textures[key] = texture;
         else
             cc.log(cc._LogInfos.textureCache_addUIImage);
@@ -349,28 +348,20 @@ if (cc._renderType === cc._RENDER_TYPE_CANVAS) {
 
         tex = locTexs[url] = new cc.Texture2D();
         tex.url = url;
-        if (!cc.loader.getRes(url)) {
-            if (cc.loader._checkIsImageURL(url)) {
-                cc.loader.load(url, function (err) {
-                    cb && cb.call(target);
-                });
-            } else {
-                cc.loader.loadImg(url, function (err, img) {
-                    if (err)
-                        return cb ? cb(err) : err;
-                    cc.loader.cache[url] = img;
-                    cc.textureCache.handleLoadedTexture(url);
-                    cb && cb.call(target, tex);
-                });
-            }
-        }
-        else {
-            tex.handleLoadedTexture();
-        }
+        var loadFunc = cc.loader._checkIsImageURL(url) ? cc.loader.load : cc.loader.loadImg;
+        loadFunc.call(cc.loader, url, function (err, img) {
+            if (err)
+                return cb && cb.call(target, err);
+            cc.textureCache.handleLoadedTexture(url);
+
+            var texResult = locTexs[url];
+            cb && cb.call(target, texResult);
+        });
 
         return tex;
     };
 
+    _p.addImageAsync = _p.addImage;
     _p = null;
 
 } else {

@@ -63,38 +63,12 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
     _finalPositionX: 0,
     _finalPositionY: 0,
 
-    //clipping
-    _currentStencilEnabled: 0,
-    _currentStencilWriteMask: 0,
-    _currentStencilFunc: 0,
-    _currentStencilRef:0,
-    _currentStencilValueMask:0,
-    _currentStencilFail:0,
-    _currentStencilPassDepthFail:0,
-    _currentStencilPassDepthPass:0,
-    _currentDepthWriteMask:0,
-
-    _currentAlphaTestEnabled:0,
-    _currentAlphaTestFunc:0,
-    _currentAlphaTestRef:0,
-
     _backGroundImageOpacity:0,
 
-    _mask_layer_le: 0,
-
     _loopFocus: false,                                                          //whether enable loop focus or not
-    __passFocusToChild: false,                                                  //on default, it will pass the focus to the next nearest widget
+    __passFocusToChild: true,                                                  //on default, it will pass the focus to the next nearest widget
     _isFocusPassing:false,                                                      //when finding the next focused widget, use this variable to pass focus between layout & widget
     _isInterceptTouch: false,
-
-    //add renderer for webgl
-    _beforeVisitCmdStencil: null,
-    _afterDrawStencilCmd: null,
-    _afterVisitCmdStencil: null,
-    _beforeVisitCmdScissor: null,
-    _afterVisitCmdScissor: null,
-
-    _clipElemType: false,
 
     /**
      * Allocates and initializes an UILayout.
@@ -121,20 +95,6 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
 
         this._clippingRect = cc.rect(0, 0, 0, 0);
         this._backGroundImageColor = cc.color(255, 255, 255, 255);
-
-        if(cc._renderType == cc._RENDER_TYPE_CANVAS){
-            this._rendererSaveCmd = new cc.CustomRenderCmdCanvas(this, this._onRenderSaveCmd);
-            this._rendererSaveCmdSprite = new cc.CustomRenderCmdCanvas(this, this._onRenderSaveSpriteCmd);
-            this._rendererClipCmd = new cc.CustomRenderCmdCanvas(this, this._onRenderClipCmd);
-            this._rendererRestoreCmd = new cc.CustomRenderCmdCanvas(this, this._onRenderRestoreCmd);
-
-        }else{
-            this._beforeVisitCmdStencil = new cc.CustomRenderCmdWebGL(this, this._onBeforeVisitStencil);
-            this._afterDrawStencilCmd = new cc.CustomRenderCmdWebGL(this, this._onAfterDrawStencil);
-            this._afterVisitCmdStencil = new cc.CustomRenderCmdWebGL(this, this._onAfterVisitStencil);
-            this._beforeVisitCmdScissor = new cc.CustomRenderCmdWebGL(this, this._onBeforeVisitScissor);
-            this._afterVisitCmdScissor = new cc.CustomRenderCmdWebGL(this, this._onAfterVisitScissor);
-        }
     },
 
     /**
@@ -202,7 +162,6 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         if (this._isFocusPassing || this.isFocused()) {
             var parent = this.getParent();
             this._isFocusPassing = false;
-
             if (this.__passFocusToChild) {
                 var w = this._passFocusToChild(direction, current);
                 if (w instanceof ccui.Layout && parent) {
@@ -212,12 +171,12 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
                 return w;
             }
 
-            if (null == parent)
+            if (null == parent || !(parent instanceof ccui.Layout))
                 return this;
             parent._isFocusPassing = true;
             return parent.findNextFocusedWidget(direction, this);
         } else if(current.isFocused() || current instanceof ccui.Layout) {
-            if (this._layoutType == ccui.Layout.LINEAR_HORIZONTAL) {
+            if (this._layoutType === ccui.Layout.LINEAR_HORIZONTAL) {
                 switch (direction){
                     case ccui.Widget.LEFT:
                         return this._getPreviousFocusedWidget(direction, current);
@@ -229,27 +188,27 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
                     case ccui.Widget.UP:
                         if (this._isLastWidgetInContainer(this, direction)){
                             if (this._isWidgetAncestorSupportLoopFocus(current, direction))
-                                return this.findNextFocusedWidget(direction, this);
+                                return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
                             return current;
                         } else {
-                            return this.findNextFocusedWidget(direction, this);
+                            return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
                         }
                     break;
                     default:
                         cc.assert(0, "Invalid Focus Direction");
                         return current;
                 }
-            } else if (this._layoutType == ccui.Layout.LINEAR_VERTICAL) {
+            } else if (this._layoutType === ccui.Layout.LINEAR_VERTICAL) {
                 switch (direction){
                     case ccui.Widget.LEFT:
                     case ccui.Widget.RIGHT:
                         if (this._isLastWidgetInContainer(this, direction)) {
                             if (this._isWidgetAncestorSupportLoopFocus(current, direction))
-                                return this.findNextFocusedWidget(direction, this);
+                                return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
                             return current;
                         }
                         else
-                            return this.findNextFocusedWidget(direction, this);
+                            return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
                      break;
                     case ccui.Widget.DOWN:
                         return this._getNextFocusedWidget(direction, current);
@@ -291,21 +250,6 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
             return true;
         }
         return false;
-    },
-
-    __stencilDraw: function(ctx){          //Only for Canvas
-        var locContext = ctx || cc._renderContext;
-        var stencil = this._clippingStencil;
-        var locEGL_ScaleX = cc.view.getScaleX(), locEGL_ScaleY = cc.view.getScaleY();
-        for (var i = 0; i < stencil._buffer.length; i++) {
-            var element = stencil._buffer[i];
-            var vertices = element.verts;
-            var firstPoint = vertices[0];
-            locContext.beginPath();
-            locContext.moveTo(firstPoint.x * locEGL_ScaleX, -firstPoint.y * locEGL_ScaleY);
-            for (var j = 1, len = vertices.length; j < len; j++)
-                locContext.lineTo(vertices[j].x * locEGL_ScaleX, -vertices[j].y * locEGL_ScaleY);
-        }
     },
 
     /**
@@ -367,9 +311,9 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      *     If clippingEnabled is true, it will clip/scissor area.
      * </p>
      * @override
-     * @param {CanvasRenderingContext2D|WebGLRenderingContext} ctx
+     * @param {cc.Node.RenderCmd} [parentCmd]
      */
-    visit: function (ctx) {
+    visit: function (parentCmd) {
         if (!this._visible)
             return;
         this._adaptRenderers();
@@ -378,222 +322,16 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         if (this._clippingEnabled) {
             switch (this._clippingType) {
                 case ccui.Layout.CLIPPING_STENCIL:
-                    this._stencilClippingVisit(ctx);
+                    this._renderCmd.stencilClippingVisit(parentCmd);
                     break;
                 case ccui.Layout.CLIPPING_SCISSOR:
-                    this._scissorClippingVisit(ctx);
+                    this._renderCmd.scissorClippingVisit(parentCmd);
                     break;
                 default:
                     break;
             }
         } else
-            ccui.Widget.prototype.visit.call(this, ctx);
-    },
-
-    _stencilClippingVisit: null,
-
-    _stencilClippingVisitForWebGL: function (ctx) {
-        var gl = ctx || cc._renderContext;
-
-        if (!this._clippingStencil || !this._clippingStencil.isVisible())
-            return;
-
-        // all the _stencilBits are in use?
-        if (ccui.Layout._layer + 1 == cc.stencilBits) {
-            // warn once
-            ccui.Layout._visit_once = true;
-            if (ccui.Layout._visit_once) {
-                cc.log("Nesting more than " + cc.stencilBits + "stencils is not supported. Everything will be drawn without stencil for this node and its childs.");
-                ccui.Layout._visit_once = false;
-            }
-            // draw everything, as if there where no stencil
-            cc.Node.prototype.visit.call(this, ctx);
-            return;
-        }
-
-        cc.renderer.pushRenderCommand(this._beforeVisitCmdStencil);
-
-        //optimize performance for javascript
-        var currentStack = cc.current_stack;
-        currentStack.stack.push(currentStack.top);
-        cc.kmMat4Assign(this._stackMatrix, currentStack.top);
-        currentStack.top = this._stackMatrix;
-
-        this.transform();
-        this._clippingStencil.visit();
-
-        cc.renderer.pushRenderCommand(this._afterDrawStencilCmd);
-
-        // draw (according to the stencil test func) this node and its childs
-        var i = 0;      // used by _children
-        var j = 0;      // used by _protectedChildren
-
-        this.sortAllChildren();
-        this.sortAllProtectedChildren();
-        var locChildren = this._children, locProtectChildren = this._protectedChildren;
-        var iLen = locChildren.length, jLen = locProtectChildren.length, child;
-        for( ; i < iLen; i++ ){
-            child = locChildren[i];
-            if ( child && child.getLocalZOrder() < 0 )
-                child.visit();
-            else
-                break;
-        }
-        for( ; j < jLen; j++ ) {
-            child = locProtectChildren[j];
-            if ( child && child.getLocalZOrder() < 0 )
-                child.visit();
-            else
-                break;
-        }
-        //this.draw();    //draw self
-        if(this._rendererCmd)
-            cc.renderer.pushRenderCommand(this._rendererCmd);
-        for (; i < iLen; i++)
-            locChildren[i].visit();
-        for (; j < jLen; j++)
-            locProtectChildren[j].visit();
-
-        cc.renderer.pushRenderCommand(this._afterVisitCmdStencil);
-
-        //optimize performance for javascript
-        currentStack.top = currentStack.stack.pop();
-    },
-
-    _stencilClippingVisitForCanvas: function (ctx) {
-        if (!this._clippingStencil || !this._clippingStencil.isVisible()) {
-            return;
-        }
-
-        var i, locChild;
-        if (this._stencil instanceof cc.Sprite) {
-            this._clipElemType = true;
-        }else{
-            this._clipElemType = false;
-        }
-
-        var context = ctx || cc._renderContext;
-
-        this.transform();
-
-        if(this._rendererSaveCmd)
-            cc.renderer.pushRenderCommand(this._rendererSaveCmd);
-
-        if (this._clipElemType) {
-            cc.ProtectedNode.prototype.visit.call(this, context);
-
-            if(this._rendererSaveCmdSprite)
-                cc.renderer.pushRenderCommand(this._rendererSaveCmdSprite);
-
-            this._clippingStencil.visit();
-
-        }else{
-            this._clippingStencil.visit(context);
-        }
-
-        if(this._rendererClipCmd)
-            cc.renderer.pushRenderCommand(this._rendererClipCmd);
-
-        if (this._clipElemType) {
-
-        }else{
-            this.sortAllChildren();
-            this.sortAllProtectedChildren();
-
-            var children = this._children;
-            var j, locProtectChildren = this._protectedChildren;
-            var iLen = children.length, jLen = locProtectChildren.length;
-
-            // draw children zOrder < 0
-            for (i = 0; i < iLen; i++) {
-                locChild = children[i];
-                if (locChild && locChild._localZOrder < 0)
-                    locChild.visit(context);
-                else
-                    break;
-            }
-            for (j = 0; j < jLen; j++) {
-                locChild = locProtectChildren[j];
-                if (locChild && locChild._localZOrder < 0)
-                    locChild.visit(context);
-                else
-                    break;
-            }
-            //this.draw(context);
-            for (; i < iLen; i++)
-                children[i].visit(context);
-            for (; j < jLen; j++)
-                locProtectChildren[j].visit(context);
-
-            if(this._rendererRestoreCmd)
-                cc.renderer.pushRenderCommand(this._rendererRestoreCmd);
-        }
-    },
-
-    _onRenderSaveCmd: function(ctx, scaleX, scaleY){
-        var context = ctx || cc._renderContext;
-
-        if (this._clipElemType) {
-            var canvas = context.canvas;
-            this._locCache = ccui.Layout._getSharedCache();
-            this._locCache.width = canvas.width;
-            this._locCache.height = canvas.height;
-            var locCacheCtx = this._locCache.getContext("2d");
-            locCacheCtx.drawImage(canvas, 0, 0);
-
-            context.save();
-        }else{
-            this.transform();
-            var t = this._transformWorld;
-            context.save();
-            context.save();
-            context.transform(t.a, t.c, t.b, t.d, t.tx * scaleX, -t.ty * scaleY);
-        }
-
-    },
-    _onRenderSaveSpriteCmd: function(ctx){
-        var context = ctx || cc._renderContext;
-
-        if (this._clipElemType) {
-            context.globalCompositeOperation = "destination-in";
-
-            this.transform(context);
-        }else{}
-    },
-    _onRenderClipCmd: function(ctx){
-
-        var context = ctx || cc._renderContext;
-
-        if (this._clipElemType) {
-
-        }else{
-            context.restore();
-            context.clip();
-        }
-    },
-    _onRenderRestoreCmd: function(ctx){
-
-        var context = ctx || cc._renderContext;
-
-        if (this._clipElemType) {
-            context.restore();
-
-            // Redraw the cached canvas, so that the cliped area shows the background etc.
-            context.save();
-            context.setTransform(1, 0, 0, 1, 0, 0);
-            context.globalCompositeOperation = "destination-over";
-            context.drawImage(this._node._locCache, 0, 0);
-            context.restore();
-        }else{
-            context.restore();
-        }
-    },
-
-    _scissorClippingVisit: null,
-    _scissorClippingVisitForWebGL: function (ctx) {
-        cc.renderer.pushRenderCommand(this._beforeVisitCmdScissor);
-        cc.ProtectedNode.prototype.visit.call(this);
-        cc.renderer.pushRenderCommand(this._afterVisitCmdScissor);
+            ccui.Widget.prototype.visit.call(this, parentCmd);
     },
 
     /**
@@ -602,15 +340,14 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @param {Boolean} able clipping enabled.
      */
     setClippingEnabled: function (able) {
-        if (able == this._clippingEnabled)
+        if (able === this._clippingEnabled)
             return;
         this._clippingEnabled = able;
         switch (this._clippingType) {
             case ccui.Layout.CLIPPING_STENCIL:
                 if (able){
                     this._clippingStencil = new cc.DrawNode();
-                    if(cc._renderType === cc._RENDER_TYPE_CANVAS)
-                        this._clippingStencil._rendererCmd.rendering = this.__stencilDraw.bind(this);
+                    this._renderCmd.rebindStencilRendering(this._clippingStencil);
                     if (this._running)
                         this._clippingStencil.onEnter();
                     this._setStencilClippingSize(this._contentSize);
@@ -630,9 +367,9 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @param {ccui.Layout.CLIPPING_STENCIL|ccui.Layout.CLIPPING_SCISSOR} type
      */
     setClippingType: function (type) {
-        if (type == this._clippingType)
+        if (type === this._clippingType)
             return;
-        if(cc._renderType === cc._RENDER_TYPE_CANVAS && type == ccui.Layout.CLIPPING_SCISSOR){
+        if(cc._renderType === cc._RENDER_TYPE_CANVAS && type === ccui.Layout.CLIPPING_SCISSOR){
             cc.log("Only supports STENCIL on canvas mode.");
             return;
         }
@@ -651,7 +388,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
     },
 
     _setStencilClippingSize: function (size) {
-        if (this._clippingEnabled && this._clippingType == ccui.Layout.CLIPPING_STENCIL) {
+        if (this._clippingEnabled && this._clippingType === ccui.Layout.CLIPPING_STENCIL) {
             var rect = [];
             rect[0] = cc.p(0, 0);
             rect[1] = cc.p(size.width, 0);
@@ -666,7 +403,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
     _getClippingRect: function () {
         if (this._clippingRectDirty) {
             var worldPos = this.convertToWorldSpace(cc.p(0, 0));
-            var t = this.nodeToWorldTransform();
+            var t = this.getNodeToWorldTransform();
             var scissorWidth = this._contentSize.width * t.a;
             var scissorHeight = this._contentSize.height * t.d;
             var parentClippingRect;
@@ -744,7 +481,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @param {Boolean} able  true that use scale9 renderer, false otherwise.
      */
     setBackGroundImageScale9Enabled: function (able) {
-        if (this._backGroundScale9Enabled == able)
+        if (this._backGroundScale9Enabled === able)
             return;
         this.removeProtectedChild(this._backGroundImage);
         this._backGroundImage = null;
@@ -771,41 +508,26 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         if (!fileName)
             return;
         texType = texType || ccui.Widget.LOCAL_TEXTURE;
-        if (this._backGroundImage == null){
+        if (this._backGroundImage === null){
             this._addBackGroundImage();
             this.setBackGroundImageScale9Enabled(this._backGroundScale9Enabled);
         }
         this._backGroundImageFileName = fileName;
         this._bgImageTexType = texType;
         var locBackgroundImage = this._backGroundImage;
-        if (this._backGroundScale9Enabled) {
-            var bgiScale9 = locBackgroundImage;
-            switch (this._bgImageTexType) {
-                case ccui.Widget.LOCAL_TEXTURE:
-                    bgiScale9.initWithFile(fileName);
-                    break;
-                case ccui.Widget.PLIST_TEXTURE:
-                    bgiScale9.initWithSpriteFrameName(fileName);
-                    break;
-                default:
-                    break;
-            }
-            bgiScale9.setPreferredSize(this._contentSize);
-        } else {
-            var sprite = locBackgroundImage;
-            switch (this._bgImageTexType){
-                case ccui.Widget.LOCAL_TEXTURE:
-                    //SetTexture cannot load resource
-                    sprite.initWithFile(fileName);
-                    break;
-                case ccui.Widget.PLIST_TEXTURE:
-                    //SetTexture cannot load resource
-                    sprite.initWithSpriteFrameName(fileName);
-                    break;
-                default:
-                    break;
-            }
+        switch (this._bgImageTexType) {
+            case ccui.Widget.LOCAL_TEXTURE:
+                locBackgroundImage.initWithFile(fileName);
+                break;
+            case ccui.Widget.PLIST_TEXTURE:
+                locBackgroundImage.initWithSpriteFrameName(fileName);
+                break;
+            default:
+                break;
         }
+        if (this._backGroundScale9Enabled)
+            locBackgroundImage.setPreferredSize(this._contentSize);
+
         this._backGroundImageTextureSize = locBackgroundImage.getContentSize();
         locBackgroundImage.setPosition(this._contentSize.width * 0.5, this._contentSize.height * 0.5);
         this._updateBackGroundImageColor();
@@ -859,13 +581,14 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
     },
 
     _addBackGroundImage: function () {
+        var contentSize = this._contentSize;
         if (this._backGroundScale9Enabled) {
             this._backGroundImage = new ccui.Scale9Sprite();
-            this._backGroundImage.setPreferredSize(this._contentSize);
+            this._backGroundImage.setPreferredSize(contentSize);
         } else
             this._backGroundImage = new cc.Sprite();
         this.addProtectedChild(this._backGroundImage, ccui.Layout.BACKGROUND_IMAGE_ZORDER, -1);
-        this._backGroundImage.setPosition(this._contentSize.width / 2.0, this._contentSize.height / 2.0);
+        this._backGroundImage.setPosition(contentSize.width * 0.5, contentSize.height * 0.5);
     },
 
     /**
@@ -886,7 +609,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @param {ccui.Layout.BG_COLOR_NONE|ccui.Layout.BG_COLOR_SOLID|ccui.Layout.BG_COLOR_GRADIENT} type
      */
     setBackGroundColorType: function (type) {
-        if (this._colorType == type)
+        if (this._colorType === type)
             return;
         switch (this._colorType) {
             case ccui.Layout.BG_COLOR_NONE:
@@ -1125,7 +848,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
     },
 
     /**
-     * request do layout, it will do layout at visit calls
+     * request to refresh widget layout, it will do layout at visit calls
      */
     requestDoLayout: function () {
         this._doLayoutDirty = true;
@@ -1151,89 +874,6 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         return this.getChildren();
     },
 
-    //clipping
-    _onBeforeVisitStencil: function(ctx){
-        var gl = ctx || cc._renderContext;
-
-        ccui.Layout._layer++;
-
-        var mask_layer = 0x1 << ccui.Layout._layer;
-        var mask_layer_l = mask_layer - 1;
-        this._mask_layer_le = mask_layer | mask_layer_l;
-
-        // manually save the stencil state
-        this._currentStencilEnabled = gl.isEnabled(gl.STENCIL_TEST);
-        this._currentStencilWriteMask = gl.getParameter(gl.STENCIL_WRITEMASK);
-        this._currentStencilFunc = gl.getParameter(gl.STENCIL_FUNC);
-        this._currentStencilRef = gl.getParameter(gl.STENCIL_REF);
-        this._currentStencilValueMask = gl.getParameter(gl.STENCIL_VALUE_MASK);
-        this._currentStencilFail = gl.getParameter(gl.STENCIL_FAIL);
-        this._currentStencilPassDepthFail = gl.getParameter(gl.STENCIL_PASS_DEPTH_FAIL);
-        this._currentStencilPassDepthPass = gl.getParameter(gl.STENCIL_PASS_DEPTH_PASS);
-
-        gl.enable(gl.STENCIL_TEST);
-
-        gl.stencilMask(mask_layer);
-
-        this._currentDepthWriteMask = gl.getParameter(gl.DEPTH_WRITEMASK);
-
-        gl.depthMask(false);
-
-        gl.stencilFunc(gl.NEVER, mask_layer, mask_layer);
-        gl.stencilOp(gl.ZERO, gl.KEEP, gl.KEEP);
-
-        // draw a fullscreen solid rectangle to clear the stencil buffer
-        this._drawFullScreenQuadClearStencil();
-
-        gl.stencilFunc(gl.NEVER, mask_layer, mask_layer);
-        gl.stencilOp(gl.REPLACE, gl.KEEP, gl.KEEP);
-    },
-
-    _drawFullScreenQuadClearStencil:function(){
-        // draw a fullscreen solid rectangle to clear the stencil buffer
-        cc.kmGLMatrixMode(cc.KM_GL_PROJECTION);
-        cc.kmGLPushMatrix();
-        cc.kmGLLoadIdentity();
-        cc.kmGLMatrixMode(cc.KM_GL_MODELVIEW);
-        cc.kmGLPushMatrix();
-        cc.kmGLLoadIdentity();
-        cc._drawingUtil.drawSolidRect(cc.p(-1,-1), cc.p(1,1), cc.color(255, 255, 255, 255));
-        cc.kmGLMatrixMode(cc.KM_GL_PROJECTION);
-        cc.kmGLPopMatrix();
-        cc.kmGLMatrixMode(cc.KM_GL_MODELVIEW);
-        cc.kmGLPopMatrix();
-    },
-
-    _onAfterDrawStencil: function(ctx){
-        var gl = ctx || cc._renderContext;
-        gl.depthMask(this._currentDepthWriteMask);
-        gl.stencilFunc(gl.EQUAL, this._mask_layer_le, this._mask_layer_le);
-        gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-    },
-
-    _onAfterVisitStencil: function(ctx){
-        var gl = ctx || cc._renderContext;
-        // manually restore the stencil state
-        gl.stencilFunc(this._currentStencilFunc, this._currentStencilRef, this._currentStencilValueMask);
-        gl.stencilOp(this._currentStencilFail, this._currentStencilPassDepthFail, this._currentStencilPassDepthPass);
-        gl.stencilMask(this._currentStencilWriteMask);
-        if (!this._currentStencilEnabled)
-            gl.disable(gl.STENCIL_TEST);
-        ccui.Layout._layer--;
-    },
-
-    _onBeforeVisitScissor: function(ctx){
-        var clippingRect = this._getClippingRect();
-        var gl = ctx || cc._renderContext;
-        gl.enable(gl.SCISSOR_TEST);
-
-        cc.view.setScissorInPoints(clippingRect.x, clippingRect.y, clippingRect.width, clippingRect.height);
-    },
-
-    _onAfterVisitScissor: function(ctx){
-        gl.disable(gl.SCISSOR_TEST);
-    },
-
     _updateBackGroundImageOpacity: function(){
         if (this._backGroundImage)
             this._backGroundImage.setOpacity(this._backGroundImageOpacity);
@@ -1257,7 +897,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         var widgetCount = 0, locSize;
         for(var i = 0, len = children.length; i < len; i++) {
             var layout = children[i];
-            if (null != layout && layout instanceof ccui.Layout){
+            if (null !== layout && layout instanceof ccui.Layout){
                 locSize = layout._getLayoutAccumulatedSize();
                 layoutSize.width += locSize.width;
                 layoutSize.height += locSize.height;
@@ -1274,10 +914,10 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
 
         //substract extra size
         var type = this.getLayoutType();
-        if (type == ccui.Layout.LINEAR_HORIZONTAL)
+        if (type === ccui.Layout.LINEAR_HORIZONTAL)
             layoutSize.height = layoutSize.height - layoutSize.height/widgetCount * (widgetCount-1);
 
-        if (type == ccui.Layout.LINEAR_VERTICAL)
+        if (type === ccui.Layout.LINEAR_VERTICAL)
             layoutSize.width = layoutSize.width - layoutSize.width/widgetCount * (widgetCount-1);
         return layoutSize;
     },
@@ -1291,14 +931,14 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @private
      */
     _findNearestChildWidgetIndex: function(direction, baseWidget){
-        if (baseWidget == null || baseWidget == this)
+        if (baseWidget == null || baseWidget === this)
             return this._findFirstFocusEnabledWidgetIndex();
 
         var index = 0, locChildren = this.getChildren();
         var count = locChildren.length, widgetPosition;
 
         var distance = cc.FLT_MAX, found = 0;
-        if (direction == ccui.Widget.LEFT || direction == ccui.Widget.RIGHT || direction == ccui.Widget.DOWN || direction == ccui.Widget.UP) {
+        if (direction === ccui.Widget.LEFT || direction === ccui.Widget.RIGHT || direction === ccui.Widget.DOWN || direction === ccui.Widget.UP) {
             widgetPosition = this._getWorldCenterPoint(baseWidget);
             while (index < count) {
                 var w = locChildren[index];
@@ -1327,14 +967,14 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      * @private
      */
     _findFarthestChildWidgetIndex: function(direction, baseWidget){
-        if (baseWidget == null || baseWidget == this)
+        if (baseWidget == null || baseWidget === this)
             return this._findFirstFocusEnabledWidgetIndex();
 
         var index = 0, locChildren = this.getChildren();
         var count = locChildren.length;
 
         var distance = -cc.FLT_MAX, found = 0;
-        if (direction == ccui.Widget.LEFT || direction == ccui.Widget.RIGHT || direction == ccui.Widget.DOWN || direction == ccui.Widget.UP) {
+        if (direction === ccui.Widget.LEFT || direction === ccui.Widget.RIGHT || direction === ccui.Widget.DOWN || direction === ccui.Widget.UP) {
             var widgetPosition =  this._getWorldCenterPoint(baseWidget);
             while (index <  count) {
                 var w = locChildren[index];
@@ -1423,16 +1063,16 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
 
         var previousWidgetPosition = this._getWorldCenterPoint(baseWidget);
         var widgetPosition = this._getWorldCenterPoint(this._findFirstNonLayoutWidget());
-        if (direction == ccui.Widget.LEFT) {
+        if (direction === ccui.Widget.LEFT) {
             this.onPassFocusToChild = (previousWidgetPosition.x > widgetPosition.x) ? this._findNearestChildWidgetIndex.bind(this)
                 : this._findFarthestChildWidgetIndex.bind(this);
-        } else if (direction == ccui.Widget.RIGHT) {
+        } else if (direction === ccui.Widget.RIGHT) {
             this.onPassFocusToChild = (previousWidgetPosition.x > widgetPosition.x) ? this._findFarthestChildWidgetIndex.bind(this)
                 : this._findNearestChildWidgetIndex.bind(this);
-        }else if(direction == ccui.Widget.DOWN) {
+        }else if(direction === ccui.Widget.DOWN) {
             this.onPassFocusToChild = (previousWidgetPosition.y > widgetPosition.y) ? this._findNearestChildWidgetIndex.bind(this)
                 : this._findFarthestChildWidgetIndex.bind(this);
-        }else if(direction == ccui.Widget.UP) {
+        }else if(direction === ccui.Widget.UP) {
             this.onPassFocusToChild = (previousWidgetPosition.y < widgetPosition.y) ? this._findNearestChildWidgetIndex.bind(this)
                 : this._findFarthestChildWidgetIndex.bind(this);
         }else
@@ -1453,7 +1093,7 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
                 if(widget)
                     return widget;
             } else{
-                if (child instanceof cc.Widget)
+                if (child instanceof ccui.Widget)
                     return child;
             }
         }
@@ -1548,22 +1188,15 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
                         }
                     } else
                         return this._getNextFocusedWidget(direction, nextWidget);
-                } else {
-                    if (current instanceof ccui.Layout)
-                        return current;
-                    else
-                        return this._focusedWidget;
-                }
+                } else
+                    return (current instanceof ccui.Layout) ? current : ccui.Widget._focusedWidget;
             } else{
                 if (this._isLastWidgetInContainer(current, direction)){
                     if (this._isWidgetAncestorSupportLoopFocus(this, direction))
-                        return this.findNextFocusedWidget(direction, this);
-                    if (current instanceof ccui.Layout)
-                        return current;
-                    else
-                        return this._focusedWidget;
+                        return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
+                    return (current instanceof ccui.Layout) ? current : ccui.Widget._focusedWidget;
                 } else
-                    return this.findNextFocusedWidget(direction, this);
+                    return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
             }
         }
     },
@@ -1606,14 +1239,14 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
                     } else
                         return this._getPreviousFocusedWidget(direction, nextWidget);
                 } else
-                    return (current instanceof ccui.Layout) ? current : this._focusedWidget;
+                    return (current instanceof ccui.Layout) ? current : ccui.Widget._focusedWidget;
             } else {
                 if (this._isLastWidgetInContainer(current, direction)) {
                     if (this._isWidgetAncestorSupportLoopFocus(this, direction))
-                        return this.findNextFocusedWidget(direction, this);
-                    return (current instanceof ccui.Layout) ? current : this._focusedWidget;
+                        return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
+                    return (current instanceof ccui.Layout) ? current : ccui.Widget._focusedWidget;
                 } else
-                    return this.findNextFocusedWidget(direction, this);
+                    return ccui.Widget.prototype.findNextFocusedWidget.call(this, direction, this);
             }
         }
     },
@@ -1655,46 +1288,46 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      */
     _isLastWidgetInContainer:function(widget, direction){
         var parent = widget.getParent();
-        if (parent instanceof ccui.Layout)
+        if (parent == null || !(parent instanceof ccui.Layout))
             return true;
 
         var container = parent.getChildren();
         var index = container.indexOf(widget);
-        if (parent.getLayoutType() == ccui.Layout.LINEAR_HORIZONTAL) {
-            if (direction == ccui.Widget.LEFT) {
-                if (index == 0)
+        if (parent.getLayoutType() === ccui.Layout.LINEAR_HORIZONTAL) {
+            if (direction === ccui.Widget.LEFT) {
+                if (index === 0)
                     return this._isLastWidgetInContainer(parent, direction);
                 else
                     return false;
             }
-            if (direction == ccui.Widget.RIGHT) {
-                if (index == container.length - 1)
+            if (direction === ccui.Widget.RIGHT) {
+                if (index === container.length - 1)
                     return this._isLastWidgetInContainer(parent, direction);
                 else
                     return false;
             }
-            if (direction == ccui.Widget.DOWN)
+            if (direction === ccui.Widget.DOWN)
                 return this._isLastWidgetInContainer(parent, direction);
 
-            if (direction == ccui.Widget.UP)
+            if (direction === ccui.Widget.UP)
                 return this._isLastWidgetInContainer(parent, direction);
-        } else if(parent.getLayoutType() == ccui.Layout.LINEAR_VERTICAL){
-            if (direction == ccui.Widget.UP){
-                if (index == 0)
+        } else if(parent.getLayoutType() === ccui.Layout.LINEAR_VERTICAL){
+            if (direction === ccui.Widget.UP){
+                if (index === 0)
                     return this._isLastWidgetInContainer(parent, direction);
                 else
                     return false;
             }
-            if (direction == ccui.Widget.DOWN) {
-                if (index == container.length - 1)
+            if (direction === ccui.Widget.DOWN) {
+                if (index === container.length - 1)
                     return this._isLastWidgetInContainer(parent, direction);
                 else
                     return false;
             }
-            if (direction == ccui.Widget.LEFT)
+            if (direction === ccui.Widget.LEFT)
                 return this._isLastWidgetInContainer(parent, direction);
 
-            if (direction == ccui.Widget.RIGHT)
+            if (direction === ccui.Widget.RIGHT)
                 return this._isLastWidgetInContainer(parent, direction);
         } else {
             cc.log("invalid layout Type");
@@ -1711,18 +1344,18 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
      */
     _isWidgetAncestorSupportLoopFocus: function(widget, direction){
         var parent = widget.getParent();
-        if (parent == null)
+        if (parent == null || !(parent instanceof ccui.Layout))
             return false;
         if (parent.isLoopFocus()) {
             var layoutType = parent.getLayoutType();
-            if (layoutType == ccui.Layout.LINEAR_HORIZONTAL) {
-                if (direction == ccui.Widget.LEFT || direction == ccui.Widget.RIGHT)
+            if (layoutType === ccui.Layout.LINEAR_HORIZONTAL) {
+                if (direction === ccui.Widget.LEFT || direction === ccui.Widget.RIGHT)
                     return true;
                 else
                     return this._isWidgetAncestorSupportLoopFocus(parent, direction);
             }
-            if (layoutType == ccui.Layout.LINEAR_VERTICAL){
-                if (direction == ccui.Widget.DOWN || direction == ccui.Widget.UP)
+            if (layoutType === ccui.Layout.LINEAR_VERTICAL){
+                if (direction === ccui.Widget.DOWN || direction === ccui.Widget.UP)
                     return true;
                 else
                     return this._isWidgetAncestorSupportLoopFocus(parent, direction);
@@ -1809,32 +1442,21 @@ ccui.Layout = ccui.Widget.extend(/** @lends ccui.Layout# */{
         this._isInterceptTouch = layout._isInterceptTouch;
     },
 
-    _transformForRenderer: function(parentMatrix){
-        if(cc._renderType === cc._RENDER_TYPE_WEBGL){
-            ccui.Widget.prototype._transformForRenderer.call(this, parentMatrix);
-            if(this._clippingStencil)
-                this._clippingStencil._transformForRenderer(this._stackMatrix);
-        }else{
-            ccui.ProtectedNode.prototype._transformForRenderer.call(this);
-        }
+    /**
+     * force refresh widget layout
+     */
+    forceDoLayout: function(){
+        this.requestDoLayout();
+        this._doLayout();
+    },
+
+    _createRenderCmd: function(){
+        if(cc._renderType === cc._RENDER_TYPE_WEBGL)
+            return new ccui.Layout.WebGLRenderCmd(this);
+        else
+            return new ccui.Layout.CanvasRenderCmd(this);
     }
 });
-ccui.Layout._init_once = null;
-ccui.Layout._visit_once = null;
-ccui.Layout._layer = -1;
-ccui.Layout._sharedCache = null;
-
-if (cc._renderType == cc._RENDER_TYPE_WEBGL) {
-    //WebGL
-    ccui.Layout.prototype._stencilClippingVisit = ccui.Layout.prototype._stencilClippingVisitForWebGL;
-    ccui.Layout.prototype._scissorClippingVisit = ccui.Layout.prototype._scissorClippingVisitForWebGL;
-} else {
-    ccui.Layout.prototype._stencilClippingVisit = ccui.Layout.prototype._stencilClippingVisitForCanvas;
-    ccui.Layout.prototype._scissorClippingVisit = ccui.Layout.prototype._stencilClippingVisitForCanvas;
-}
-ccui.Layout._getSharedCache = function () {
-    return (cc.ClippingNode._sharedCache) || (cc.ClippingNode._sharedCache = cc.newElement("canvas"));
-};
 
 var _p = ccui.Layout.prototype;
 

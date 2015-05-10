@@ -156,7 +156,8 @@ cc.Control = cc.Layer.extend(/** @lends cc.Control# */{
             this._highlighted = false;
 
             var listener = cc.EventListener.create({
-                event: cc.EventListener.TOUCH_ONE_BY_ONE
+                event: cc.EventListener.TOUCH_ONE_BY_ONE,
+                swallowTouches: true
             });
             if (this.onTouchBegan)
                 listener.onTouchBegan = this.onTouchBegan.bind(this);
@@ -334,9 +335,9 @@ cc.Control = cc.Layer.extend(/** @lends cc.Control# */{
                 var invocation = eventInvocationList[i];
                 var shouldBeRemoved = true;
                 if (target)
-                    shouldBeRemoved = (target == invocation.getTarget());
+                    shouldBeRemoved = (target === invocation.getTarget());
                 if (action)
-                    shouldBeRemoved = (shouldBeRemoved && (action == invocation.getAction()));
+                    shouldBeRemoved = (shouldBeRemoved && (action === invocation.getAction()));
                 // Remove the corresponding invocation object
                 if (shouldBeRemoved)
                     cc.arrayRemoveObject(eventInvocationList, invocation);

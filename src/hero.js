@@ -1,10 +1,10 @@
-
-var CONST_MOVE_SPEED = 150;
-var CONST_INCREASE_BASE_ANGEL = 3;
-var CONST_INCREASE_TOWER_ANGEL = 3;
-var CONST_CD_TIME = 1;
-var CONST_SPEED2_DURATION = 5;
-var CONST_CDHALF_DURATION = 5;
+var CONST_ROLL_DURATION = 0.1;
+var CONST_MOVE_SPEED = 3;
+var CONST_INCREASE_BASE_ANGEL = 4;
+var CONST_INCREASE_TOWER_ANGEL = 4;
+var CONST_CD_TIME = 0.8;
+var CONST_SPEED2_DURATION = 7;
+var CONST_CDHALF_DURATION = 6;
 var CONST_STEALTH_DURATION = 10;
 var CONST_TOWER_TO_BASE_DIS = 20;
 var CONST_LIFE = 5;
@@ -29,8 +29,10 @@ var Hero = cc.Node.extend({
     speed: CONST_MOVE_SPEED,
     cd: CONST_CD_TIME,
     life: CONST_LIFE,
-
+    move: false,
     stealth: false,
+    rollTime: 0,
+    dir     : 0,
     ctor: function(colortype) {
         this._super();
 
@@ -114,7 +116,7 @@ var Hero = cc.Node.extend({
     {
         if(this.speed == CONST_MOVE_SPEED)
         {
-            this.speed = CONST_MOVE_SPEED * 2;
+            this.speed = CONST_MOVE_SPEED * 1.5;
             this.scheduleOnce(function(dt){
                 this.speed = CONST_MOVE_SPEED;
             },CONST_SPEED2_DURATION);
@@ -125,7 +127,9 @@ var Hero = cc.Node.extend({
        if(this.cd  == CONST_CD_TIME)
        {
            this.cd = 0.1;//CONST_CD_TIME/2;
+           this.aimer.visible = true;
            this.scheduleOnce(function(dt){
+               this.aimer.visible = false;
                 this.cd = CONST_CD_TIME;
            },CONST_CDHALF_DURATION);
        }
@@ -180,19 +184,26 @@ var Hero = cc.Node.extend({
                 this.tower_light.setOpacity(opc);
             }
         }
+
+        return;
+
+        if(this.move) this.updateMove(dt);
+
         switch(this.status)
         {
             case STATUS.IDLE:
+                this.rollTime = 0;
                 break;
-            case STATUS.MOVE:
-                this.updateMove(dt);
-                break;
+            //case STATUS.MOVE:
+            //    break;
             case STATUS.ROLL:
+                this.rollTime += dt;
+                if(this.rollTime <= CONST_ROLL_DURATION) return;
                 this.updateBaseRoll(dt);
                 this.updateTowerRoll(dt);
                 break;
-            case STATUS.SHOOT:
-                break;
+            //case STATUS.SHOOT:
+            //    break;
         }
     },
     getlife: function()
@@ -228,8 +239,8 @@ var Hero = cc.Node.extend({
         if(this.life <= 0 )
         {
             //gameover;
-            this.status = STATUS.DEAD;
-            currentLayer.unscheduleUpdate();
+            //this.status = STATUS.DEAD;
+            currentLayer.gameover = true;
             var filename = this.colortype == g_ColorType.blue ?g_ColorType.red: g_ColorType.blue;
             var gameoverLayer = new GameOverLayer(filename);
             currentLayer.addChild(gameoverLayer,100);
@@ -243,6 +254,66 @@ var Hero = cc.Node.extend({
         this.addChild(particle, 10);
         particle.setPosition(cc.p(0,0));
         particle.setAutoRemoveOnFinish(true);
-    }
+    },
 
+    stopMove: function(){
+        this.move = false;
+    },
+
+    startMove: function(){
+        this.move = true;
+    },
+    onRun : function(rocker){
+        if(currentLayer.gameover) return;
+        //if(this.dir != rocker.direction){
+        //    this.dir = rocker.direction;
+            var angle = 90 - rocker.angle;
+            this.tower_angel = angle;
+            this.tower.setRotation(angle);
+            this.tower_light.setRotation(angle);
+            this.aimer.setRotation(angle);
+            //return;
+        //}
+
+        // 获取摇杆方向
+        var dir = rocker.direction;
+        // 获取摇杆速度 (取值范围[0-1])
+        var rockerSpeed = rocker.speed;
+        // 获取摇杆弧度
+        var radians = rocker.radians;
+
+        switch (dir){
+            case Direction.D_UP:
+                this.y += rockerSpeed * this.speed;
+                break;
+            case Direction.D_RIGHT_UP:
+                this.x += rockerSpeed * this.speed * Math.cos(radians);
+                this.y += rockerSpeed * this.speed * Math.sin(radians);
+                break;
+            case Direction.D_RIGHT:
+                this.x += rockerSpeed * this.speed;
+                break;
+            case Direction.D_RIGHT_DOWN:
+                this.x += rockerSpeed * this.speed * Math.cos(radians);
+                this.y += rockerSpeed * this.speed * Math.sin(radians);
+                break;
+            case Direction.D_DOWN:
+                this.y -= rockerSpeed * this.speed;
+                break;
+            case Direction.D_LEFT_DOWN:
+                this.x += rockerSpeed * this.speed * Math.cos(radians);
+                this.y += rockerSpeed * this.speed * Math.sin(radians);
+                break;
+            case Direction.D_LEFT:
+                this.x -= rockerSpeed * this.speed;
+                break;
+            case Direction.D_LEFT_UP:
+                this.x += rockerSpeed * this.speed * Math.cos(radians);
+                this.y += rockerSpeed * this.speed * Math.sin(radians);
+                break;
+            case Direction.DEFAULT:
+            default :
+                break;
+        }
+    }    
 });

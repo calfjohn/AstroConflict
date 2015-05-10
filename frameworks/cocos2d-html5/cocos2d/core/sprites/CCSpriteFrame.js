@@ -236,7 +236,7 @@ cc.SpriteFrame = cc.Class.extend(/** @lends cc.SpriteFrame# */{
      * @param {cc.Texture2D} texture
      */
     setTexture:function (texture) {
-        if (this._texture != texture) {
+        if (this._texture !== texture) {
             var locLoaded = texture.isLoaded();
             this._textureLoaded = locLoaded;
             this._texture = texture;
@@ -245,7 +245,7 @@ cc.SpriteFrame = cc.Class.extend(/** @lends cc.SpriteFrame# */{
                     this._textureLoaded = true;
                     if(this._rotated && cc._renderType === cc._RENDER_TYPE_CANVAS){
                         var tempElement = sender.getHtmlElementObj();
-                        tempElement = cc.cutRotateImageToCanvas(tempElement, this.getRect());
+                        tempElement = cc.Sprite.CanvasRenderCmd._cutRotateImageToCanvas(tempElement, this.getRect());
                         var tempTexture = new cc.Texture2D();
                         tempTexture.initWithElement(tempElement);
                         tempTexture.handleLoadedTexture();

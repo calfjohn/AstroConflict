@@ -215,12 +215,12 @@ cc.MenuItem.create = function (callback, target) {
  *
  * @property {String}   string          - Content string of label item
  * @property {cc.Node}  label           - Label of label item
- * @property {cc.Color} disabledColor   - Color of label when it's diabled
+ * @property {cc.Color} disabledColor   - Color of label when it's disabled
  */
 cc.MenuItemLabel = cc.MenuItem.extend(/** @lends cc.MenuItemLabel# */{
     _disabledColor: null,
     _label: null,
-    _orginalScale: 0,
+    _originalScale: 0,
     _colorBackup: null,
 
     /**
@@ -233,7 +233,6 @@ cc.MenuItemLabel = cc.MenuItem.extend(/** @lends cc.MenuItemLabel# */{
         cc.MenuItem.prototype.ctor.call(this, selector, target);
         this._disabledColor = null;
         this._label = null;
-        this._orginalScale = 0;
         this._colorBackup = null;
 
         if (label) {
@@ -296,7 +295,7 @@ cc.MenuItemLabel = cc.MenuItem.extend(/** @lends cc.MenuItemLabel# */{
      * @param {Boolean} enabled
      */
     setEnabled: function (enabled) {
-        if (this._enabled != enabled) {
+        if (this._enabled !== enabled) {
             var locLabel = this._label;
             if (!enabled) {
                 this._colorBackup = locLabel.color;
@@ -493,7 +492,7 @@ cc.MenuItemAtlasFont = cc.MenuItemLabel.extend(/** @lends cc.MenuItemAtlasFont# 
      * @return {Boolean}
      */
     initWithString: function (value, charMapFile, itemWidth, itemHeight, startCharMap, callback, target) {
-        if (!value || value.length == 0)
+        if (!value || value.length === 0)
             throw "cc.MenuItemAtlasFont.initWithString(): value should be non-null and its length should be greater than 0";
 
         var label = new cc.LabelAtlas();
@@ -567,7 +566,7 @@ cc.MenuItemFont = cc.MenuItemLabel.extend(/** @lends cc.MenuItemFont# */{
      * @return {Boolean}
      */
     initWithString: function (value, callback, target) {
-        if (!value || value.length == 0)
+        if (!value || value.length === 0)
             throw "Value should be non-null and its length should be greater than 0";
 
         this._fontName = cc._globalFontName;
@@ -726,8 +725,8 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
         this._disabledImage = null;
 
         if (selectedSprite !== undefined) {
-            normalSprite = normalSprite;
-            selectedSprite = selectedSprite;
+            //normalSprite = normalSprite;
+            //selectedSprite = selectedSprite;
             var disabledImage, target, callback;
             //when you send 4 arguments, five is undefined
             if (five !== undefined) {
@@ -740,9 +739,9 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
             } else if (four !== undefined && cc.isFunction(three)) {
                 target = four;
                 callback = three;
-                disabledImage = new cc.Sprite(selectedSprite);
+                disabledImage = null;
             } else if (three === undefined) {
-                disabledImage = new cc.Sprite(selectedSprite);
+                disabledImage = null;
             }
             this.initWithNormalSprite(normalSprite, selectedSprite, disabledImage, callback, target);
         }
@@ -761,7 +760,7 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
      * @param {cc.Sprite} normalImage
      */
     setNormalImage: function (normalImage) {
-        if (this._normalImage == normalImage) {
+        if (this._normalImage === normalImage) {
             return;
         }
         if (normalImage) {
@@ -799,7 +798,7 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
      * @param {cc.Sprite} selectedImage
      */
     setSelectedImage: function (selectedImage) {
-        if (this._selectedImage == selectedImage)
+        if (this._selectedImage === selectedImage)
             return;
 
         if (selectedImage) {
@@ -829,7 +828,7 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
      * @param {cc.Sprite} disabledImage
      */
     setDisabledImage: function (disabledImage) {
-        if (this._disabledImage == disabledImage)
+        if (this._disabledImage === disabledImage)
             return;
 
         if (disabledImage) {
@@ -960,7 +959,7 @@ cc.MenuItemSprite = cc.MenuItem.extend(/** @lends cc.MenuItemSprite# */{
      * @param {Boolean} bEnabled
      */
     setEnabled: function (bEnabled) {
-        if (this._enabled != bEnabled) {
+        if (this._enabled !== bEnabled) {
             cc.MenuItem.prototype.setEnabled.call(this, bEnabled);
             this._updateImagesVisibility();
         }
@@ -1252,7 +1251,7 @@ cc.MenuItemToggle = cc.MenuItem.extend(/** @lends cc.MenuItemToggle# */{
      * @param {Number} SelectedIndex
      */
     setSelectedIndex: function (SelectedIndex) {
-        if (SelectedIndex != this._selectedIndex) {
+        if (SelectedIndex !== this._selectedIndex) {
             this._selectedIndex = SelectedIndex;
             var currItem = this.getChildByTag(cc.CURRENT_ITEM);
             if (currItem)
@@ -1359,7 +1358,7 @@ cc.MenuItemToggle = cc.MenuItem.extend(/** @lends cc.MenuItemToggle# */{
      * @param {Boolean} enabled
      */
     setEnabled: function (enabled) {
-        if (this._enabled != enabled) {
+        if (this._enabled !== enabled) {
             cc.MenuItem.prototype.setEnabled.call(this, enabled);
             var locItems = this.subItems;
             if (locItems && locItems.length > 0) {
@@ -1370,12 +1369,21 @@ cc.MenuItemToggle = cc.MenuItem.extend(/** @lends cc.MenuItemToggle# */{
     },
 
     /**
-     * returns the selected item
+     * returns the selected item   (deprecated in -x, please use getSelectedItem instead.)
      * @return {cc.MenuItem}
      */
     selectedItem: function () {
         return this.subItems[this._selectedIndex];
     },
+
+    /**
+     * returns the selected item.
+     * @return {cc.MenuItem}
+     */
+    getSelectedItem: function() {
+        return this.subItems[this._selectedIndex];
+    },
+
     /**
      * * <p>
      *     Event callback that is invoked every time when cc.MenuItemToggle enters the 'stage'.                                   <br/>

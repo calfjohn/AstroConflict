@@ -118,7 +118,7 @@ cc.inputManager = /** @lends cc.inputManager# */{
 
             if(index == null){
                 var unusedIndex = this._getUnUsedIndex();
-                if (unusedIndex == -1) {
+                if (unusedIndex === -1) {
                     cc.log(cc._LogInfos.inputManager_handleTouchesBegin, unusedIndex);
                     continue;
                 }
@@ -266,7 +266,7 @@ cc.inputManager = /** @lends cc.inputManager# */{
         var locPreTouchPool = this._preTouchPool;
         var id = touch.getID();
         for (var i = locPreTouchPool.length - 1; i >= 0; i--) {
-            if (locPreTouchPool[i].getID() == id) {
+            if (locPreTouchPool[i].getID() === id) {
                 preTouch = locPreTouchPool[i];
                 break;
             }
@@ -285,7 +285,7 @@ cc.inputManager = /** @lends cc.inputManager# */{
         var locPreTouchPool = this._preTouchPool;
         var id = touch.getID();
         for (var i = locPreTouchPool.length - 1; i >= 0; i--) {
-            if (locPreTouchPool[i].getID() == id) {
+            if (locPreTouchPool[i].getID() === id) {
                 locPreTouchPool[i] = touch;
                 find = true;
                 break;
@@ -400,6 +400,17 @@ cc.inputManager = /** @lends cc.inputManager# */{
         var selfPointer = this;
         var supportMouse = ('mouse' in cc.sys.capabilities), supportTouches = ('touches' in cc.sys.capabilities);
 
+        //HACK
+        //  - At the same time to trigger the ontouch event and onmouse event
+        //  - The function will execute 2 times
+        //The known browser:
+        //  liebiao
+        //  miui
+        //  WECHAT
+        var prohibition = false;
+        if( cc.sys.isMobile)
+            prohibition = true;
+
         //register touch event
         if (supportMouse) {
             cc._addEventListener(window, 'mousedown', function () {
@@ -407,6 +418,7 @@ cc.inputManager = /** @lends cc.inputManager# */{
             }, false);
 
             cc._addEventListener(window, 'mouseup', function (event) {
+                if(prohibition) return;
                 var savePressed = selfPointer._mousePressed;
                 selfPointer._mousePressed = false;
 
@@ -416,8 +428,7 @@ cc.inputManager = /** @lends cc.inputManager# */{
                 var pos = selfPointer.getHTMLElementPosition(element);
                 var location = selfPointer.getPointByEvent(event, pos);
                 if (!cc.rectContainsPoint(new cc.Rect(pos.left, pos.top, pos.width, pos.height), location)){
-                    if(!supportTouches)
-                        selfPointer.handleTouchesEnd([selfPointer.getTouchByXY(location.x, location.y, pos)]);
+                    selfPointer.handleTouchesEnd([selfPointer.getTouchByXY(location.x, location.y, pos)]);
 
                     var mouseEvent = selfPointer.getMouseEvent(location,pos,cc.EventMouse.UP);
                     mouseEvent.setButton(event.button);
@@ -427,13 +438,13 @@ cc.inputManager = /** @lends cc.inputManager# */{
 
             //register canvas mouse event
             cc._addEventListener(element,"mousedown", function (event) {
+                if(prohibition) return;
                 selfPointer._mousePressed = true;
 
                 var pos = selfPointer.getHTMLElementPosition(element);
                 var location = selfPointer.getPointByEvent(event, pos);
 
-                if(!supportTouches)
-                    selfPointer.handleTouchesBegin([selfPointer.getTouchByXY(location.x, location.y, pos)]);
+                selfPointer.handleTouchesBegin([selfPointer.getTouchByXY(location.x, location.y, pos)]);
 
                 var mouseEvent = selfPointer.getMouseEvent(location,pos,cc.EventMouse.DOWN);
                 mouseEvent.setButton(event.button);
@@ -445,13 +456,13 @@ cc.inputManager = /** @lends cc.inputManager# */{
             }, false);
 
             cc._addEventListener(element, "mouseup", function (event) {
+                if(prohibition) return;
                 selfPointer._mousePressed = false;
 
                 var pos = selfPointer.getHTMLElementPosition(element);
                 var location = selfPointer.getPointByEvent(event, pos);
 
-                if(!supportTouches)
-                    selfPointer.handleTouchesEnd([selfPointer.getTouchByXY(location.x, location.y, pos)]);
+                selfPointer.handleTouchesEnd([selfPointer.getTouchByXY(location.x, location.y, pos)]);
 
                 var mouseEvent = selfPointer.getMouseEvent(location,pos,cc.EventMouse.UP);
                 mouseEvent.setButton(event.button);
@@ -462,14 +473,12 @@ cc.inputManager = /** @lends cc.inputManager# */{
             }, false);
 
             cc._addEventListener(element, "mousemove", function (event) {
-                //if(!selfPointer._mousePressed)
-                //    return;
+                if(prohibition) return;
 
                 var pos = selfPointer.getHTMLElementPosition(element);
                 var location = selfPointer.getPointByEvent(event, pos);
 
-                if(!supportTouches)
-                    selfPointer.handleTouchesMove([selfPointer.getTouchByXY(location.x, location.y, pos)]);
+                selfPointer.handleTouchesMove([selfPointer.getTouchByXY(location.x, location.y, pos)]);
 
                 var mouseEvent = selfPointer.getMouseEvent(location,pos,cc.EventMouse.MOVE);
                 if(selfPointer._mousePressed)

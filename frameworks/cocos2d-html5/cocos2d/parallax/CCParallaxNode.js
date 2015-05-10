@@ -190,7 +190,7 @@ cc.ParallaxNode = cc.Node.extend(/** @lends cc.ParallaxNode# */{
         var locParallaxArray = this.parallaxArray;
         for (var i = 0; i < locParallaxArray.length; i++) {
             var point = locParallaxArray[i];
-            if (point.getChild() == child) {
+            if (point.getChild() === child) {
                 locParallaxArray.splice(i, 1);
                 break;
             }
@@ -207,35 +207,7 @@ cc.ParallaxNode = cc.Node.extend(/** @lends cc.ParallaxNode# */{
         cc.Node.prototype.removeAllChildren.call(this, cleanup);
     },
 
-    /**
-     * Recursive method that visit its children and draw them
-     */
-    visit:function () {
-        var pos = this._absolutePosition();
-        if (!cc.pointEqualToPoint(pos, this._lastPosition)) {
-            var locParallaxArray = this.parallaxArray;
-            for (var i = 0, len = locParallaxArray.length; i < len; i++) {
-                var point = locParallaxArray[i];
-	            var child = point.getChild();
-	            child.setPosition(-pos.x + pos.x * point.getRatio().x + point.getOffset().x,
-	                               -pos.y + pos.y * point.getRatio().y + point.getOffset().y);
-            }
-            this._lastPosition = pos;
-        }
-        cc.Node.prototype.visit.call(this);
-    },
-
-    _absolutePosition:function () {
-        var ret = this._position;
-        var cn = this;
-        while (cn.parent != null) {
-            cn = cn.parent;
-            ret = cc.pAdd(ret, cn.getPosition());
-        }
-        return ret;
-    },
-
-    _transformForRenderer:function () {
+    _updateParallaxPosition: function(){
         var pos = this._absolutePosition();
         if (!cc.pointEqualToPoint(pos, this._lastPosition)) {
             var locParallaxArray = this.parallaxArray;
@@ -243,11 +215,27 @@ cc.ParallaxNode = cc.Node.extend(/** @lends cc.ParallaxNode# */{
                 var point = locParallaxArray[i];
                 var child = point.getChild();
                 child.setPosition(-pos.x + pos.x * point.getRatio().x + point.getOffset().x,
-                    -pos.y + pos.y * point.getRatio().y + point.getOffset().y);
+                        -pos.y + pos.y * point.getRatio().y + point.getOffset().y);
             }
             this._lastPosition = pos;
         }
-        cc.Node.prototype._transformForRenderer.call(this);
+    },
+
+    _absolutePosition:function () {
+        var ret = this._position;
+        var cn = this;
+        while (cn.parent !== null) {
+            cn = cn.parent;
+            ret = cc.pAdd(ret, cn.getPosition());
+        }
+        return ret;
+    },
+
+    _createRenderCmd: function(){
+        if(cc._renderType === cc._RENDER_TYPE_CANVAS)
+            return new cc.ParallaxNode.CanvasRenderCmd(this);
+        else
+            return new cc.ParallaxNode.WebGLRenderCmd(this);
     }
 });
 

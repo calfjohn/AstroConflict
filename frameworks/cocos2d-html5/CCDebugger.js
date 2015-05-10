@@ -144,7 +144,6 @@ cc._LogInfos = {
     Sprite_setTexture_2: "Invalid argument: cc.Sprite.texture setter expects a CCTexture2D.",
     Sprite_updateQuadFromSprite_2: "cc.SpriteBatchNode.updateQuadFromSprite(): sprite should be non-null",
     Sprite_insertQuadFromSprite_2: "cc.SpriteBatchNode.insertQuadFromSprite(): sprite should be non-null",
-    Sprite_addChild_6: "cc.SpriteBatchNode.addChild(): child should be non-null",
 
     SpriteBatchNode_addSpriteWithoutQuad: "cc.SpriteBatchNode.addQuadFromSprite(): SpriteBatchNode only supports cc.Sprites as children",
     SpriteBatchNode_increaseAtlasCapacity: "cocos2d: CCSpriteBatchNode: resizing TextureAtlas capacity from %s to %s.",
@@ -152,7 +151,7 @@ cc._LogInfos = {
     SpriteBatchNode_reorderChild: "cc.SpriteBatchNode.addChild(): Child doesn't belong to Sprite",
     SpriteBatchNode_removeChild: "cc.SpriteBatchNode.addChild(): sprite batch node should contain the child",
     SpriteBatchNode_addSpriteWithoutQuad_2: "cc.SpriteBatchNode.addQuadFromSprite(): child should be non-null",
-    SpriteBatchNode_reorderChild_2: "cc.SpriteBatchNode.addChild():child should be non-null",
+    SpriteBatchNode_reorderChild_2: "cc.SpriteBatchNode.addChild(): child should be non-null",
 
     spriteFrameCache__getFrameConfig: "cocos2d: WARNING: originalWidth/Height not found on the cc.SpriteFrame. AnchorPoint won't work as expected. Regenrate the .plist",
     spriteFrameCache_addSpriteFrames: "cocos2d: WARNING: an alias with name %s already exists",
@@ -283,7 +282,7 @@ cc._formatString = function (arg) {
  */
 cc._initDebugSetting = function (mode) {
     var ccGame = cc.game;
-    if(mode == ccGame.DEBUG_MODE_NONE)
+    if(mode === ccGame.DEBUG_MODE_NONE)
         return;
 
     var locLog;
@@ -300,20 +299,18 @@ cc._initDebugSetting = function (mode) {
                 locLog("Assert: " + msg);
             }
         };
-        if(mode != ccGame.DEBUG_MODE_ERROR_FOR_WEB_PAGE){
+        if(mode !== ccGame.DEBUG_MODE_ERROR_FOR_WEB_PAGE){
             cc.warn = function(){
                 locLog("WARN :  " + cc.formatStr.apply(cc, arguments));
             };
         }
-        if(mode == ccGame.DEBUG_MODE_INFO_FOR_WEB_PAGE){
+        if(mode === ccGame.DEBUG_MODE_INFO_FOR_WEB_PAGE){
             cc.log = function(){
                 locLog(cc.formatStr.apply(cc, arguments));
             };
         }
-    } else {
+    } else if(console && console.log.apply){//console is null when user doesn't open dev tool on IE9
         //log to console
-        if(!console)    //console is null when user doesn't open dev tool on IE9
-            return;
 
         cc.error = function(){
             return console.error.apply(console, arguments);
@@ -325,11 +322,11 @@ cc._initDebugSetting = function (mode) {
                 throw msg;
             }
         };
-        if(mode != ccGame.DEBUG_MODE_ERROR)
+        if(mode !== ccGame.DEBUG_MODE_ERROR)
             cc.warn = function(){
                 return console.warn.apply(console, arguments);
             };
-        if(mode == ccGame.DEBUG_MODE_INFO)
+        if(mode === ccGame.DEBUG_MODE_INFO)
             cc.log = function(){
                 return console.log.apply(console, arguments);
             };

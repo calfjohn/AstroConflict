@@ -72,8 +72,6 @@ cc.PARTICLE_DEFAULT_CAPACITY = 500;
  */
 cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
 	textureAtlas:null,
-
-    TextureProtocol:true,
     //the blend function used for drawing the quads
     _blendFunc:null,
     _className:"ParticleBatchNode",
@@ -103,6 +101,13 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         }
     },
 
+    _createRenderCmd: function(){
+        if(cc._renderType === cc._RENDER_TYPE_CANVAS)
+            return new cc.ParticleBatchNode.CanvasRenderCmd(this);
+        else
+            return new cc.ParticleBatchNode.WebGLRenderCmd(this);
+    },
+
     /**
      * initializes the particle system with cc.Texture2D, a capacity of particles
      * @param {cc.Texture2D|HTMLImageElement|HTMLCanvasElement} texture
@@ -116,8 +121,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         // no lazy alloc in this node
         this._children.length = 0;
 
-        if (cc._renderType === cc._RENDER_TYPE_WEBGL)
-            this.shaderProgram = cc.shaderCache.programForKey(cc.SHADER_POSITION_TEXTURECOLOR);
+        this._renderCmd._initWithTexture();
         return true;
     },
 
@@ -139,7 +143,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
      * @return {Boolean}
      */
     init:function (fileImage, capacity) {
-        var tex = cc.TextureCache.getInstance().addImage(fileImage);
+        var tex = cc.textureCache.addImage(fileImage);
         return this.initWithTexture(tex, capacity);
     },
 
@@ -157,7 +161,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         zOrder = (zOrder == null) ? child.zIndex : zOrder;
         tag = (tag == null) ? child.tag : tag;
 
-        if(child.getTexture() != this.textureAtlas.texture)
+        if(child.getTexture() !== this.textureAtlas.texture)
             throw "cc.ParticleSystem.addChild() : the child is not using the same texture id";
 
         // If this is the 1st children, then copy blending function
@@ -165,7 +169,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         if (this._children.length === 0)
             this.setBlendFunc(childBlendFunc);
         else{
-            if((childBlendFunc.src != this._blendFunc.src) || (childBlendFunc.dst != this._blendFunc.dst)){
+            if((childBlendFunc.src !== this._blendFunc.src) || (childBlendFunc.dst !== this._blendFunc.dst)){
                 cc.log("cc.ParticleSystem.addChild() : Can't add a ParticleSystem that uses a different blending function");
                 return;
             }
@@ -177,7 +181,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         //get new atlasIndex
         var atlasIndex = 0;
 
-        if (pos != 0) {
+        if (pos !== 0) {
             var p = this._children[pos - 1];
             atlasIndex = p.getAtlasIndex() + p.getTotalParticles();
         } else
@@ -206,7 +210,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
         }
 
         // make room for quads, not necessary for last child
-        if (pSystem.getAtlasIndex() + totalParticles != totalQuads)
+        if (pSystem.getAtlasIndex() + totalParticles !== totalQuads)
             locTextureAtlas.moveQuadsFromIndex(index, index + totalParticles);
 
         // increase totalParticles here for new particles, update method of particlesystem will fill the quads
@@ -225,7 +229,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
 
         if(!(child instanceof cc.ParticleSystem))
             throw "cc.ParticleBatchNode.removeChild(): only supports cc.ParticleSystem as children";
-        if(this._children.indexOf(child) == -1){
+        if(this._children.indexOf(child) === -1){
             cc.log("cc.ParticleBatchNode.removeChild(): doesn't contain the sprite. Can't remove it");
             return;
         }
@@ -260,14 +264,14 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
             return;
         }
 
-        if (zOrder == child.zIndex)
+        if (zOrder === child.zIndex)
             return;
 
         // no reordering if only 1 child
         if (this._children.length > 1) {
             var getIndexes = this._getCurrentIndex(child, zOrder);
 
-            if (getIndexes.oldIndex != getIndexes.newIndex) {
+            if (getIndexes.oldIndex !== getIndexes.newIndex) {
                 // reorder m_pChildren.array
                 this._children.splice(getIndexes.oldIndex, 1)
                 this._children.splice(getIndexes.newIndex, 0, child);
@@ -283,7 +287,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
                 var locChildren = this._children;
                 for (var i = 0; i < locChildren.length; i++) {
                     var pNode = locChildren[i];
-                    if (pNode == child) {
+                    if (pNode === child) {
                         newAtlasIndex = child.getAtlasIndex();
                         break;
                     }
@@ -330,28 +334,8 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
     },
 
     /**
-     * Render function using the canvas 2d context or WebGL context, internal usage only, please do not call this function
-     * @function
-     * @param {CanvasRenderingContext2D | WebGLRenderingContext} ctx The render context
-     */
-    draw:function (ctx) {
-        //cc.PROFILER_STOP("CCParticleBatchNode - draw");
-        if (cc._renderType === cc._RENDER_TYPE_CANVAS)
-            return;
-
-        if (this.textureAtlas.totalQuads == 0)
-            return;
-
-        cc.nodeDrawSetup(this);
-        cc.glBlendFuncForParticle(this._blendFunc.src, this._blendFunc.dst);
-        this.textureAtlas.drawQuads();
-
-        //cc.PROFILER_STOP("CCParticleBatchNode - draw");
-    },
-
-    /**
      * returns the used texture
-     * @return {cc.Texture2D|HTMLImageElement|HTMLCanvasElement}
+     * @return {cc.Texture2D}
      */
     getTexture:function () {
         return this.textureAtlas.texture;
@@ -359,14 +343,14 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
 
     /**
      * sets a new texture. it will be retained
-     * @param {cc.Texture2D|HTMLImageElement|HTMLCanvasElement} texture
+     * @param {cc.Texture2D} texture
      */
     setTexture:function (texture) {
         this.textureAtlas.texture = texture;
 
         // If the new texture has No premultiplied alpha, AND the blendFunc hasn't been changed, then update it
         var locBlendFunc = this._blendFunc;
-        if (texture && !texture.hasPremultipliedAlpha() && ( locBlendFunc.src == cc.BLEND_SRC && locBlendFunc.dst == cc.BLEND_DST )) {
+        if (texture && !texture.hasPremultipliedAlpha() && ( locBlendFunc.src === cc.BLEND_SRC && locBlendFunc.dst === cc.BLEND_DST )) {
             locBlendFunc.src = cc.SRC_ALPHA;
             locBlendFunc.dst = cc.ONE_MINUS_SRC_ALPHA;
         }
@@ -385,7 +369,6 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
             this._blendFunc.src = src;
             this._blendFunc.src = dst;
         }
-
     },
 
     /**
@@ -393,41 +376,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
      * @return {cc.BlendFunc}
      */
     getBlendFunc:function () {
-        return {src:this._blendFunc.src, dst:this._blendFunc.dst};
-    },
-
-    // override visit.
-    // Don't call visit on it's children
-    /**
-     * Recursive method that visit its children and draw them
-     * @function
-     * @param {CanvasRenderingContext2D|WebGLRenderingContext} ctx
-     */
-    visit:function (ctx) {
-        if (cc._renderType === cc._RENDER_TYPE_CANVAS)
-            return;
-
-        // CAREFUL:
-        // This visit is almost identical to cc.Node#visit
-        // with the exception that it doesn't call visit on it's children
-        //
-        // The alternative is to have a void cc.Sprite#visit, but
-        // although this is less mantainable, is faster
-        //
-        if (!this._visible)
-            return;
-
-        var currentStack = cc.current_stack;
-        currentStack.stack.push(currentStack.top);
-        cc.kmMat4Assign(this._stackMatrix, currentStack.top);
-        currentStack.top = this._stackMatrix;
-
-        this.transform(ctx);
-        //this.draw(ctx);
-        if(this._rendererCmd)
-            cc.renderer.pushRenderCommand(this._rendererCmd);
-
-        cc.kmGLPopMatrix();
+        return new cc.BlendFunc(this._blendFunc.src, this._blendFunc.dst);
     },
 
     _updateAllAtlasIndexes:function () {
@@ -480,7 +429,7 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
                     break;
             }
             // current index
-            if (child == pNode) {
+            if (child === pNode) {
                 oldIndex = i;
                 foundCurrentIdx = true;
                 if (!foundNewIdx)
@@ -555,11 +504,6 @@ cc.ParticleBatchNode = cc.Node.extend(/** @lends cc.ParticleBatchNode# */{
      */
     setTextureAtlas:function (textureAtlas) {
         this.textureAtlas = textureAtlas;
-    },
-
-    _initRendererCmd:function(){
-        if(cc._renderType === cc._RENDER_TYPE_WEBGL)
-            this._rendererCmd = new cc.ParticleBatchNodeRenderCmdWebGL(this);
     }
 });
 

@@ -27,13 +27,14 @@
 cc.g_NumberOfDraws = 0;
 
 cc.GLToClipTransform = function (transformOut) {
-    var projection = new cc.kmMat4();
-    cc.kmGLGetMatrix(cc.KM_GL_PROJECTION, projection);
+    //var projection = new cc.math.Matrix4();
+    //cc.kmGLGetMatrix(cc.KM_GL_PROJECTION, projection);
+    cc.kmGLGetMatrix(cc.KM_GL_PROJECTION, transformOut);
 
-    var modelview = new cc.kmMat4();
+    var modelview = new cc.math.Matrix4();
     cc.kmGLGetMatrix(cc.KM_GL_MODELVIEW, modelview);
 
-    cc.kmMat4Multiply(transformOut, projection, modelview);
+    transformOut.multiply(modelview);
 };
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -153,8 +154,12 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
         //scheduler
         this._scheduler = new cc.Scheduler();
         //action manager
-        this._actionManager = cc.ActionManager ? new cc.ActionManager() : null;
-        this._scheduler.scheduleUpdateForTarget(this._actionManager, cc.Scheduler.PRIORITY_SYSTEM, false);
+        if(cc.ActionManager){
+            this._actionManager = new cc.ActionManager();
+            this._scheduler.scheduleUpdate(this._actionManager, cc.Scheduler.PRIORITY_SYSTEM, false);
+        }else{
+            this._actionManager = null;
+        }
 
         this._eventAfterDraw = new cc.EventCustom(cc.Director.EVENT_AFTER_DRAW);
         this._eventAfterDraw.setUserData(this);
@@ -237,7 +242,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
         if (this._runningScene) {
             if (renderer.childrenOrderDirty === true) {
                 cc.renderer.clearRenderCommands();
-                this._runningScene._curLevel = 0;                          //level start from 0;
+                this._runningScene._renderCmd._curLevel = 0;                          //level start from 0;
                 this._runningScene.visit();
                 renderer.resetFlag();
             } else if (renderer.transformDirty() === true)
@@ -364,7 +369,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
         this._scenesStack.pop();
         var c = this._scenesStack.length;
 
-        if (c == 0)
+        if (c === 0)
             this.end();
         else {
             this._sendCleanupToScene = true;
@@ -386,7 +391,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
      */
     purgeDirector: function () {
         //cleanup scheduler
-        this.getScheduler().unscheduleAllCallbacks();
+        this.getScheduler().unscheduleAll();
 
         // Disable event dispatching
         if (cc.eventManager)
@@ -484,7 +489,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
      * @param {Number} scaleFactor
      */
     setContentScaleFactor: function (scaleFactor) {
-        if (scaleFactor != this._contentScaleFactor) {
+        if (scaleFactor !== this._contentScaleFactor) {
             this._contentScaleFactor = scaleFactor;
             this._createStatsLabel();
         }
@@ -541,7 +546,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
         cc.renderer.childrenOrderDirty = true;
 
         this._nextScene = null;
-        if ((!runningIsTransition) && (this._runningScene != null)) {
+        if ((!runningIsTransition) && (this._runningScene !== null)) {
             this._runningScene.onEnter();
             this._runningScene.onEnterTransitionDidFinish();
         }
@@ -581,7 +586,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
 
     /**
      * Sets an OpenGL projection.<br/>
-     * Implementation can be found in CCDiretorCanvas.js/CCDiretorWebGL.js.
+     * Implementation can be found in CCDirectorCanvas.js/CCDirectorWebGL.js.
      * @function
      * @param {Number} projection
      */
@@ -589,14 +594,14 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
 
     /**
      * Update the view port.<br/>
-     * Implementation can be found in CCDiretorCanvas.js/CCDiretorWebGL.js.
+     * Implementation can be found in CCDirectorCanvas.js/CCDirectorWebGL.js.
      * @function
      */
     setViewport: null,
 
     /**
      * Get the CCEGLView, where everything is rendered.<br/>
-     * Implementation can be found in CCDiretorCanvas.js/CCDiretorWebGL.js.
+     * Implementation can be found in CCDirectorCanvas.js/CCDirectorWebGL.js.
      * @function
      * @return {cc.view}
      */
@@ -604,7 +609,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
 
     /**
      * Sets an OpenGL projection.<br/>
-     * Implementation can be found in CCDiretorCanvas.js/CCDiretorWebGL.js.
+     * Implementation can be found in CCDirectorCanvas.js/CCDirectorWebGL.js.
      * @function
      * @return {Number}
      */
@@ -612,7 +617,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
 
     /**
      * Enables/disables OpenGL alpha blending.<br/>
-     * Implementation can be found in CCDiretorCanvas.js/CCDiretorWebGL.js.
+     * Implementation can be found in CCDirectorCanvas.js/CCDirectorWebGL.js.
      * @function
      * @param {Boolean} on
      */
@@ -731,13 +736,12 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
      * @param {Number} level
      */
     popToSceneStackLevel: function (level) {
-
         cc.assert(this._runningScene, cc._LogInfos.Director_popToSceneStackLevel_2);
 
         var locScenesStack = this._scenesStack;
         var c = locScenesStack.length;
 
-        if (c == 0) {
+        if (c === 0) {
             this.end();
             return;
         }
@@ -772,7 +776,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
      * @param {cc.Scheduler} scheduler
      */
     setScheduler: function (scheduler) {
-        if (this._scheduler != scheduler) {
+        if (this._scheduler !== scheduler) {
             this._scheduler = scheduler;
         }
     },
@@ -789,7 +793,7 @@ cc.Director = cc.Class.extend(/** @lends cc.Director# */{
      * @param {cc.ActionManager} actionManager
      */
     setActionManager: function (actionManager) {
-        if (this._actionManager != actionManager) {
+        if (this._actionManager !== actionManager) {
             this._actionManager = actionManager;
         }
     },
@@ -971,9 +975,10 @@ if (cc._renderType === cc._RENDER_TYPE_CANVAS) {
 
     _p._clear = function () {
         var viewport = this._openGLView.getViewPortRect();
-        cc._renderContext.clearRect(-viewport.x, viewport.y, viewport.width, -viewport.height);
+        var context = cc._renderContext.getContext();
+        context.setTransform(1,0,0,1, 0, 0);
+        context.clearRect(-viewport.x, viewport.y, viewport.width, viewport.height);
     };
-
 
     _p._createStatsLabel = function () {
         var _t = this;
@@ -1016,7 +1021,4 @@ if (cc._renderType === cc._RENDER_TYPE_CANVAS) {
     if (cc._fpsImage) {
         cc.Director._fpsImage.src = cc._fpsImage;
     }
-    cc.assert(cc.isFunction(cc._tmp.DirectorWebGL), cc._LogInfos.MissingFile, "CCDirectorWebGL.js");
-    cc._tmp.DirectorWebGL();
-    delete cc._tmp.DirectorWebGL;
 }

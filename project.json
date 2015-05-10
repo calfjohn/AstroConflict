@@ -8,7 +8,7 @@
     "renderMode" : 0,
     "engineDir":"frameworks/cocos2d-html5",
 
-    "modules" : ["cocos2d"],
+    "modules" : ["cocos2d", "ccui", "audio"],
 
     "jsList" : [
         "src/resource.js",
@@ -20,6 +20,8 @@
         "src/gameMenuLayer.js",
         "src/gameOverLayer.js",
         "src/gameScene.js",
-        "src/bulletController.js"
+        "src/bulletController.js",
+        "src/star.js",
+        "src/RockerSprite.js"
     ]
 }

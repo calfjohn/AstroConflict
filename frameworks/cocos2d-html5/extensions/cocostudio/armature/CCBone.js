@@ -116,7 +116,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
     setBoneData: function (boneData) {
         cc.assert(boneData, "_boneData must not be null");
 
-        if(this._boneData != boneData)
+        if(this._boneData !== boneData)
             this._boneData = boneData;
 
         this.setName(this._boneData.name);
@@ -230,7 +230,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
             srcValue = blendFunc;
             dstValue = dst;
         }
-        if (locBlendFunc.src != srcValue || locBlendFunc.dst != dstValue) {
+        if (locBlendFunc.src !== srcValue || locBlendFunc.dst !== dstValue) {
             locBlendFunc.src = srcValue;
             locBlendFunc.dst = dstValue;
             this.blendDirty = true;
@@ -239,37 +239,17 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
 
     /**
      * Updates display color
-     * @override
-     * @param {cc.Color} color
-     */
-    updateDisplayedColor: function (color) {
-        this._realColor = cc.color(255, 255, 255);
-        cc.Node.prototype.updateDisplayedColor.call(this, color);
-        this.updateColor();
-    },
-
-    /**
-     * Updates display opacity
-     * @param {Number} opacity
-     */
-    updateDisplayedOpacity: function (opacity) {
-        this._realOpacity = 255;
-        cc.Node.prototype.updateDisplayedOpacity.call(this, opacity);
-        this.updateColor();
-    },
-
-    /**
-     * Updates display color
      */
     updateColor: function () {
         var display = this._displayManager.getDisplayRenderNode();
-        if (display != null) {
+        if (display !== null) {
+            var cmd = this._renderCmd;
             display.setColor(
                 cc.color(
-                        this._displayedColor.r * this._tweenData.r / 255,
-                        this._displayedColor.g * this._tweenData.g / 255,
-                        this._displayedColor.b * this._tweenData.b / 255));
-            display.setOpacity(this._displayedOpacity * this._tweenData.a / 255);
+                        cmd._displayedColor.r * this._tweenData.r / 255,
+                        cmd._displayedColor.g * this._tweenData.g / 255,
+                        cmd._displayedColor.b * this._tweenData.b / 255));
+            display.setOpacity(cmd._displayedOpacity * this._tweenData.a / 255);
         }
     },
 
@@ -278,8 +258,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      */
     updateZOrder: function () {
         if (this._armature.getArmatureData().dataVersion >= ccs.CONST_VERSION_COMBINED) {
-            var zorder = this._tweenData.zOrder + this._boneData.zOrder;
-            this.setLocalZOrder(zorder);
+            this.setLocalZOrder(this._tweenData.zOrder + this._boneData.zOrder);
         } else {
             this.setLocalZOrder(this._tweenData.zOrder);
         }
@@ -305,7 +284,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      * @param {Boolean} recursion
      */
     removeChildBone: function (bone, recursion) {
-        if (this._children.length > 0 && this._children.getIndex(bone) != -1 ) {
+        if (this._children.length > 0 && this._children.getIndex(bone) !== -1 ) {
             if(recursion) {
                 var ccbones = bone._children;
                 for(var i=0; i<ccbones.length; i++){
@@ -352,7 +331,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      * @param {ccs.Armature} armature
      */
     setChildArmature: function (armature) {
-        if (this._childArmature != armature) {
+        if (this._childArmature !== armature) {
             if (armature == null && this._childArmature)
                 this._childArmature.setParentBone(null);
             this._childArmature = armature;
@@ -380,7 +359,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      * @param {Number} zOrder
      */
     setLocalZOrder: function (zOrder) {
-        if (this._localZOrder != zOrder)
+        if (this._localZOrder !== zOrder)
             cc.Node.prototype.setLocalZOrder.call(this, zOrder);
     },
 
@@ -567,7 +546,7 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      * @return {cc.BlendFunc}
      */
     getBlendFunc: function () {
-        return this._blendFunc;
+        return new cc.BlendFunc(this._blendFunc.src, this._blendFunc.dst);
     },
 
     /**
@@ -648,6 +627,13 @@ ccs.Bone = ccs.Node.extend(/** @lends ccs.Bone# */{
      */
     getIgnoreMovementBoneData: function () {
         return this.isIgnoreMovementBoneData();
+    },
+
+    _createRenderCmd: function(){
+        if(cc._renderType === cc._RENDER_TYPE_CANVAS)
+            return new ccs.Bone.CanvasRenderCmd(this);
+        else
+            return new ccs.Bone.WebGLRenderCmd(this);
     }
 });
 
@@ -686,3 +672,42 @@ _p = null;
 ccs.Bone.create = function (name) {
     return new ccs.Bone(name);
 };
+
+ccs.Bone.RenderCmd = {
+    _updateColor: function(){
+        var node = this._node;
+        var display = node._displayManager.getDisplayRenderNode();
+        if (display !== null) {
+            var displayCmd = display._renderCmd;
+            display.setColor(cc.color( node._tweenData.r, node._tweenData.g, node._tweenData.g));
+            display.setOpacity(node._tweenData.a);
+            displayCmd._syncDisplayColor(this._displayedColor);
+            displayCmd._syncDisplayOpacity(this._displayedOpacity);
+            displayCmd._updateColor();
+        }
+    }
+};
+
+(function(){
+    ccs.Bone.CanvasRenderCmd  = function(renderable){
+        cc.Node.CanvasRenderCmd.call(this, renderable);
+        this._needDraw = false;
+    };
+
+    var proto = ccs.Bone.CanvasRenderCmd.prototype = Object.create(cc.Node.CanvasRenderCmd.prototype);
+    cc.inject(ccs.Bone.RenderCmd, proto);
+    proto.constructor = ccs.Bone.CanvasRenderCmd;
+})();
+
+(function(){
+    if(!cc.Node.WebGLRenderCmd)
+        return;
+    ccs.Bone.WebGLRenderCmd = function(renderable){
+        cc.Node.WebGLRenderCmd.call(this, renderable);
+        this._needDraw = false;
+    };
+
+    var proto = ccs.Bone.WebGLRenderCmd.prototype = Object.create(cc.Node.WebGLRenderCmd.prototype);
+    cc.inject(ccs.Bone.RenderCmd, proto);
+    proto.constructor = ccs.Bone.WebGLRenderCmd;
+})();

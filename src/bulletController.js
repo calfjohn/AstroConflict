@@ -1,10 +1,13 @@
-var currentLayer;
 var BULLET_SPEED = 400;
 var BULLET_RADUIS = 20;
 
 var bulletController = {
     bulletsA: [],
     bulletsB: [],
+    reset: function(){
+        this.bulletsA = [];
+        this.bulletsB = [];
+    },
     collision: function(obj1, obj2){
         var miniDistance = obj1.radius + obj2.radius;
         var blue_Pos = obj1.getPosition();
@@ -26,26 +29,6 @@ var bulletController = {
             if(obj1.duration && obj2.duration) this.collapse(cc.pMidpoint(blue_Pos, red_Pos));
             if(obj2.life) obj1.onCollide(obj2);
         }
-        //var obj1Momentum = {x:obj1.speed.x * obj1.mass.x, y:obj1.speed.y * obj1.mass.x};
-        //var obj2Momentum = {x:obj2.speed.x * obj2.mass.y, y:obj2.speed.y * obj2.mass.y};
-        //
-        //if(obj1Momentum.x * obj2Momentum.x > 0){
-        //    obj1.speed.x = (obj1Momentum.x - obj2Momentum.x) / obj1.mass.x;
-        //    obj2.speed.x = (obj2Momentum.x - obj1Momentum.x) / obj2.mass.x;
-        //}
-        //else{
-        //    obj1.speed.x = (obj1Momentum.x + obj2Momentum.x) / obj1.mass.x;
-        //    obj2.speed.x = (obj2Momentum.x + obj1Momentum.x) / obj2.mass.x;
-        //}
-        //
-        //if(obj1Momentum.y * obj2Momentum.y > 0){
-        //    obj1.speed.y = (obj1Momentum.y - obj2Momentum.y) / obj1.mass.y;
-        //    obj2.speed.y = (obj2Momentum.y - obj1Momentum.y) / obj2.mass.y;
-        //}
-        //else{
-        //    obj1.speed.y = (obj1Momentum.y + obj2Momentum.y) / obj1.mass.y;
-        //    obj2.speed.y = (obj2Momentum.y + obj1Momentum.y) / obj2.mass.y;
-        //}
 
     },
     proccessArray: function(bullets, mask, dt){
@@ -62,20 +45,10 @@ var bulletController = {
             if(mask === 1) {
                 var target = currentLayer.blue;
                 if(!target.stealth) this.collision(bullet, target);
-                //var dist = cc.pDistance(bullet.getPosition(), target.getPosition());
-                //if (dist < bullet.radius  + target.radius) {
-                //    bullet.onCollide(target);
-                //    bullet.curDuration = bullet.duration + 1;
-                //}
             }
             else if(mask ===2){
                 var target = currentLayer.red;
                 if(!target.stealth) this.collision(bullet, target);
-                //var dist = cc.pDistance(bullet.getPosition(), target.getPosition());
-                //if (dist < bullet.radius + target.radius) {
-                //    bullet.onCollide(target);
-                //    bullet.curDuration = bullet.duration + 1;
-                //}
             }
 
             bullet.curDuration = bullet.curDuration + dt;

@@ -34,12 +34,29 @@ var res = {
     star3: "res/star3.png",
     key_dot: "res/key_dot.png",
     key_slash: "res/key_slash.png",
-    key_X: "res/key_X.png",
-    key_Z: "res/key_Z.png",
+    key_x: "res/key_x.png",
+    key_z: "res/key_z.png",
+    key_dot_press: "res/key_dot_press.png",
+    key_slash_press: "res/key_slash_press.png",
+    key_x_press: "res/key_x_press.png",
+    key_z_press: "res/key_z_press.png",
     logo_png: "res/logo.png",
     shoot: "res/shoot.plist",
     lighting: "res/lightning.plist",
-    collapse: "res/collapse.plist"
+    collapse: "res/collapse.plist",
+    bg_music: "res/battle.mp3",
+    sun:"res/sun.png",
+    AsteroidBelt:"res/AsteroidBelt.png",
+    asteroids:"res/AsteroidBelt.plist",
+    sol:"res/sol.png",
+    start: "res/start.png",
+    restart: "res/restart.png",
+    coco: "res/Coco.png",
+    cocologo: "res/CocoLogo.jpg",
+    base_png: "res/event/control_base.png",
+    knob_png: "res/event/control_knob.png",
+    shoot_png: "res/event/btn.png",
+    shootpress_png: "res/event/btnpress.png"
 };
 
 var g_resources = [];

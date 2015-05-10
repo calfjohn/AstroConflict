@@ -1,3 +1,5 @@
+var currentLayer;
+
 var GameSceneLayer = cc.Layer.extend({
     sprite:null,
     blue: null,
@@ -19,17 +21,19 @@ var GameSceneLayer = cc.Layer.extend({
     key_slash: null,
     controllabel: null,
     shootlabel: null,
+    rocker1: null,
+    rocker2: null,
+    gameover: false,
     ctor:function (flag) {
-
         this._super();
 
-        //add Bk
-        var bk =new cc.Sprite(res.game_bk);
-        bk.attr({
-            x: cc.winSize.width/2,
-            y: cc.winSize.height/2
-        });
-        this.addChild(bk,1);
+        ////add Bk
+        //var bk =new cc.Sprite(res.game_bk);
+        //bk.attr({
+        //    x: cc.winSize.width/2,
+        //    y: cc.winSize.height/2
+        //});
+        //this.addChild(bk,1);
 
         //add Hero
         this.blue = new Hero(g_ColorType.blue);
@@ -43,7 +47,7 @@ var GameSceneLayer = cc.Layer.extend({
             x: cc.winSize.width/2,
             y: cc.winSize.height/2
         });
-        this.addChild(border,5)
+        this.addChild(border,5);
 
         //add Life
         for(var i =0 ; i < 5; i++)
@@ -65,7 +69,7 @@ var GameSceneLayer = cc.Layer.extend({
         }
 
         if(flag) {
-            this.initIntroduce(7);
+            //this.initIntroduce(7);
             this.menu_layer = new GameMenuLayer();
             this.addChild(this.menu_layer,100);
         }
@@ -73,15 +77,23 @@ var GameSceneLayer = cc.Layer.extend({
             this.onStartGame();
         }
 
+
         return true;
     },
     initIntroduce: function(tag){
+        this.shootlabel = new cc.LabelTTF("← Click To Shoot →", "", 15);
+        this.shootlabel.setPosition(cc.p(cc.winSize.width/2, cc.winSize.height/3));
+        this.shootlabel.setColor(cc.color(100,100,100,100));
+        this.addChild(this.shootlabel, tag);
+
+        if(cc.sys.isMobile) return;
+
         //add logo and key tip
-        this.key_z = new cc.Sprite(res.key_Z);
+        this.key_z = new cc.Sprite(res.key_z);
         this.key_z.setPosition(cc.p(200, cc.winSize.height/5));
         this.addChild(this.key_z, tag);
 
-        this.key_x = new cc.Sprite(res.key_X);
+        this.key_x = new cc.Sprite(res.key_x);
         this.key_x.setPosition(cc.p(200, cc.winSize.height/3));
         this.addChild(this.key_x, tag);
 
@@ -97,176 +109,120 @@ var GameSceneLayer = cc.Layer.extend({
         this.key_slash = new cc.Sprite(res.key_slash);
         this.key_slash.setPosition(cc.p(cc.winSize.width-200, cc.winSize.height/3));
         this.addChild(this.key_slash, tag);
-
-        this.shootlabel = new cc.LabelTTF("← Click To Shoot →", "", 15);
-        this.shootlabel.setPosition(cc.p(cc.winSize.width/2, cc.winSize.height/3));
-        this.shootlabel.setColor(cc.color(100,100,100,100));
-        this.addChild(this.shootlabel, tag);
     },
     makeIntroduceEasy: function(){
-        this.shootlabel.setString("← Press Keyboard, Please →");
+        this.shootlabel.setString("Press keyboard Z, X, > or ?.");
+        this.shootlabel.setFontSize(24);
         this.shootlabel.setColor(cc.color(255,0,0,255));
 
+        if(cc.sys.isMobile) return;
+        var x = 20, y = 50;
         var keyWidth = this.key_x.getContentSize().width/2;
-        var pos = this.key_x.getPosition();
-        this.key_z.runAction(cc.moveTo(2, cc.p(pos.x - keyWidth*3/5, pos.y)));
-        this.key_x.runAction(cc.moveBy(1, cc.p(keyWidth*3/5, 0)));
+        this.key_z.runAction(cc.moveTo(1, cc.p(x + keyWidth, y)));
+        this.key_x.runAction(cc.moveTo(1, cc.p(x + keyWidth*3, y)));
 
-        pos = this.key_slash.getPosition();
-        this.key_dot.runAction(cc.moveTo(2, cc.p(pos.x - keyWidth*3/5, pos.y)));
-        this.key_slash.runAction(cc.moveBy(1, cc.p(keyWidth*3/5, 0)));
+        this.key_dot.runAction(cc.moveTo(1, cc.p(cc.winSize.width-x-keyWidth*3, y)));
+        this.key_slash.runAction(cc.moveTo(1, cc.p(cc.winSize.width-keyWidth-x, y)));
 
         this.controllabel.runAction(cc.sequence(cc.fadeOut(1), cc.removeSelf()));
     },
-    initKeyBoardControl: function()
-    {
-        cc.eventManager.addListener({
-            event: cc.EventListener.KEYBOARD,
-            onKeyPressed:  function(keyCode, event){
-                var target = event.getCurrentTarget();
-                if (target.shootlabel && target.shootlabel.visible) target.shootlabel.runAction(cc.sequence(cc.fadeOut(5), cc.removeSelf()));
-                if(keyCode == 90)
-                {
-                    if(!target.temp_90_pressed && !target.temp_88_pressed)
-                    {
-                        if(target.key_z && target.key_z.visible) target.key_z.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
+    loadRocker : function(){
+        this.rocker1 = new Rocker(res.base_png, res.knob_png, "DEFAULT");
+        this.rocker1.callback = this.onCallbackBlue.bind(this);
+        this.addChild(this.rocker1, 6);
+        this.rocker1.setPosition(this.rocker1.radius + 50, this.rocker1.radius + 50);
 
-                        target.temp_90_pressed = true;
-                        target.blue.setStatus(STATUS.MOVE);
-                        //cc.log("Key " + keyCode.toString() + " was pressed!");
-                    }
-                }
-                else if(keyCode == 88)
-                {
-                    if(!target.temp_88_pressed && !target.temp_90_pressed)
-                    {
-                        if(target.key_x && target.key_x.visible) target.key_x.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
-
-                        target.temp_88_pressed = true;
-                        target.blue.setStatus(STATUS.ROLL);
-                        target.blue.aimer.setVisible(true);
-                        //if(!target.blue.isCDing) target.blue.shoot();
-                        //cc.log("Key " + keyCode.toString() + " was pressed!");
-                    }
-                }
-                else if(keyCode == 190 && !g_IsAIEnable)
-                {
-                    if(!target.temp_190_pressed && !target.temp_191_pressed)
-                    {
-                        if(target.key_dot && target.key_dot.visible) target.key_dot.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
-
-                        target.temp_190_pressed = true;
-                        target.red.setStatus(STATUS.MOVE);
-                        //target.red.aimer.setVisible(true);
-                        //cc.log("Key " + keyCode.toString() + " was pressed!");
-                    }
-                }
-                else if(keyCode == 191 && !g_IsAIEnable)
-                {
-                    if(!target.temp_191_pressed && !target.temp_190_pressed)
-                    {
-                        if(target.key_slash && target.key_slash.visible) target.key_slash.runAction(cc.sequence(cc.fadeOut(2), cc.removeSelf()));
-
-                        target.temp_191_pressed = true;
-                        target.red.setStatus(STATUS.ROLL);
-                        target.red.aimer.setVisible(true);
-                        //if(!target.red.isCDing) target.red.shoot();
-                        //cc.log("Key " + keyCode.toString() + " was pressed!");
-                    }
-                }
-                //else if(keyCode == 65 && !g_IsAIEnable)//a
-                //{
-                //    target.blue.isLeftPressed = true;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 83 && !g_IsAIEnable)//s
-                //{
-                //    target.blue.isDownPressed = true;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 68 && !g_IsAIEnable)//d
-                //{
-                //    target.blue.isRightPressed = true;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 87 && !g_IsAIEnable)//w
-                //{
-                //    target.blue.isUpPressed = true;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-
-            },
-            onKeyReleased: function(keyCode, event){
-                var target = event.getCurrentTarget();
-                if(keyCode == 90)
-                {
-                    if(target.temp_90_pressed)
-                    {
-                        target.temp_90_pressed = false;
-                        //target.blue.isClockWise = !target.blue.isClockWise;
-                        target.blue.setStatus(STATUS.IDLE);
-                        //cc.log("Key " + keyCode.toString() + " was released!");
-                    }
-                }
-                else if(keyCode == 88)
-                {
-                    if(target.temp_88_pressed)
-                    {
-                        target.temp_88_pressed = false;
-                        target.blue.setStatus(STATUS.IDLE);
-                        if(!target.blue.isCDing) target.blue.shoot();
-                        target.red.aimer.setVisible(false);
-                        //cc.log("Key " + keyCode.toString() + " was released!");
-                    }
-                }
-                else if(keyCode == 190 && !g_IsAIEnable)
-                {
-                    if(target.temp_190_pressed)
-                    {
-                        target.temp_190_pressed = false;
-                        //target.red.isClockWise = !target.red.isClockWise;
-                        target.red.setStatus(STATUS.IDLE);
-                        //cc.log("Key " + keyCode.toString() + " was released!");
-                    }
-                }
-                else if(keyCode == 191 && !g_IsAIEnable)
-                {
-                    if(target.temp_191_pressed)
-                    {
-                        target.temp_191_pressed = false;
-                        target.red.setStatus(STATUS.IDLE);
-                        if(!target.red.isCDing) target.red.shoot();
-                        target.red.aimer.setVisible(false);
-                        //cc.log("Key " + keyCode.toString() + " was released!");
-                    }
-                }
-                //else if(keyCode == 65 && !g_IsAIEnable)//a
-                //{
-                //    target.blue.isLeftPressed = false;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 83 && !g_IsAIEnable)//s
-                //{
-                //    target.blue.isDownPressed = false;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 68 && !g_IsAIEnable)//d
-                //{
-                //    target.blue.isRightPressed = false;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-                //else if(keyCode == 87 && !g_IsAIEnable)//w
-                //{
-                //    target.blue.isUpPressed = false;
-                //    target.blue.setStatus(STATUS.MOVE);
-                //}
-            }
-        }, this);
+        this.rocker2 = new Rocker(res.base_png, res.knob_png, "DEFAULT");
+        this.rocker2.callback = this.onCallbackRed.bind(this);
+        this.addChild(this.rocker2, 6);
+        this.rocker2.setPosition(cc.winSize.width - this.rocker2.radius - 50, this.rocker2.radius + 50);
     },
+    onCallbackBlue : function(sender){
+        this.blue.onRun(this.rocker1);
+    },
+    onCallbackRed : function(sender){
+        this.red.onRun(this.rocker2);
+    },
+    initButtonControl: function(){
+        var touchEvent = function (sender, type) {
+            var target;
+            var layer = sender.getParent();
+            if(layer.gameover) return;
+            var tag = sender.getTag();
+            if (tag == 90 || tag == 88){
+                target = layer.blue;
+            }
+            else if (tag == 190 || tag == 191){
+                target = layer.red;
+            }
+            else return;
+
+            switch (type){
+                case ccui.Widget.TOUCH_BEGAN:
+                    //if(tag == 90 || tag == 190) target.startMove();
+                    //else
+                    if(tag == 88 || tag == 191) {
+                        //target.setStatus(STATUS.ROLL);
+                        target.aimer.setVisible(true);
+                    }
+                    break;
+                case ccui.Widget.TOUCH_MOVED:
+                    break;
+                case ccui.Widget.TOUCH_ENDED:
+                case ccui.Widget.TOUCH_CANCELED:
+                    //if(tag == 90 || tag == 190) target.stopMove();
+                    //else
+                    if(tag == 88 || tag == 191) {
+                        target.setStatus(STATUS.IDLE);
+                        if(!target.isCDing) target.shoot();
+                            target.aimer.setVisible(false);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        var x = this.rocker1.radius+50, y = this.rocker1.radius + 50;
+        //var button = new ccui.Button();
+        //button.setTouchEnabled(true);
+        //button.loadTextures(res.key_z, res.key_z_press, res.key_z);
+        //button.addTouchEventListener(touchEvent, this);
+        //button.setPosition(cc.p(x + button.getContentSize().width/2, y));
+        //button.setTag(90);
+        //this.addChild(button, 10);
+
+        button = new ccui.Button();
+        button.setTouchEnabled(true);
+        button.loadTextures(res.shoot_png, res.shootpress_png, res.shootpress_png);
+        button.addTouchEventListener(touchEvent, this);
+        button.setPosition(cc.p(x + button.getContentSize().width*2, y));
+        button.setOpacity(128);
+        button.setTag(88);
+        this.addChild(button, 100);
+
+        //button = new ccui.Button();
+        //button.setTouchEnabled(true);
+        //button.loadTextures(res.key_dot, res.key_dot_press, res.key_dot);
+        //button.addTouchEventListener(touchEvent, this);
+        //button.setPosition(cc.p(cc.winSize.width-x-button.getContentSize().width*3/2, y));
+        //button.setTag(190);
+        //this.addChild(button, 100);
+
+        button = new ccui.Button();
+        button.setTouchEnabled(true);
+        button.loadTextures(res.shoot_png, res.shootpress_png, res.shootpress_png);
+        button.addTouchEventListener(touchEvent, this);
+        button.setPosition(cc.p(cc.winSize.width-button.getContentSize().width*2-x, y));
+        button.setOpacity(128);
+        button.setTag(191);
+        this.addChild(button, 100);
+    },
+
     onStartGame: function()
     {
         if(this.menu_layer) {
-            this.makeIntroduceEasy();
+            //this.makeIntroduceEasy();
             this.menu_layer.removeFromParent();
         }
 
@@ -284,7 +240,8 @@ var GameSceneLayer = cc.Layer.extend({
                     {
                         //this.blue_lifes[4 - this.blue_life_count].setTexture(res.life_frame);
                         var jumpAction = cc.jumpBy(1, cc.p(100, 0),  20, 3);
-                        this.blue_lifes[4 - this.blue_life_count].runAction(cc.sequence(jumpAction, cc.fadeOut(1), cc.removeSelf()));
+                        if(this.blue_lifes[4 - this.blue_life_count])
+                            this.blue_lifes[4 - this.blue_life_count].runAction(cc.sequence(jumpAction, cc.fadeOut(1), cc.removeSelf()));
                     }
 
                 }
@@ -293,7 +250,8 @@ var GameSceneLayer = cc.Layer.extend({
                     this.red_life_count --;
                     if(this.red_life_count>=0){
                         var jumpAction = cc.jumpBy(1, cc.p(-100, 0),  20, 3);
-                        this.red_lifes[4 - this.red_life_count].runAction(cc.sequence(jumpAction, cc.fadeOut(1), cc.removeSelf()));
+                        if(this.red_lifes[4 - this.red_life_count])
+                            this.red_lifes[4 - this.red_life_count].runAction(cc.sequence(jumpAction, cc.fadeOut(1), cc.removeSelf()));
                         //this.red_lifes[4 - this.red_life_count].setTexture(res.life_frame);
                     }
                 }
@@ -329,11 +287,12 @@ var GameSceneLayer = cc.Layer.extend({
         this.blue.setStatus(STATUS.MOVE);
         this.red.setStatus(STATUS.MOVE);
 
+        //add ItemController
+        this.ic = new ItemController(this);
+        g_ItemPool = [];
+
         //add GameController
         this.gc = new GameController(this.blue,this.red);
-
-        //add ItemController
-        this.ic = new ItemController();
 
         //enable AI?
         //gc.setAIEnable(true);
@@ -359,9 +318,16 @@ var GameSceneLayer = cc.Layer.extend({
             }
         }.bind(this),2.5);
 
-        this.initKeyBoardControl();
+        this.loadRocker();
+        //if(cc.sys.isMobile) {
+            this.initButtonControl();
+        //}
+        //else {
+        //    this.initKeyBoardControl();
+        //}
     },
     update: function(dt){
+        if(this.gameover) return;
         this.blue.update(dt);
         this.red.update(dt);
         bulletController.attacks(dt);
@@ -370,17 +336,68 @@ var GameSceneLayer = cc.Layer.extend({
     }
 });
 
+var SolarSystem = cc.Layer.extend({
+    onEnter:function () {
+        this._super();
+
+        var offset = 180;
+        var whRate = cc.visibleRect.width/(cc.visibleRect.height-offset);
+        this.setScaleY(1/whRate);
+        Star.whRate = whRate;
+
+        var sun = new Sun();
+        sun.setPosition(cc.pAdd(cc.visibleRect.center, cc.p(0, offset/2)));
+        this.addChild(sun);
+
+        var astBelt = new MainBelt;
+        sun.addChild(astBelt);
+    }
+});
+
+
 var GameScene = cc.Scene.extend({
     _newGame:false,
     ctor:function(flag){
         this._super();
         this._newGame = flag;
+        bulletController.reset();
     },
     onEnter:function () {
         this._super();
+
+        var background = new cc.Sprite(res.game_bk);
+        this.addChild(background);
+        background.setPosition(cc.visibleRect.center);
+
+        this.addChild(new SolarSystem);
+
         var layer = new GameSceneLayer(this._newGame);
         this.addChild(layer);
         currentLayer = layer;
+
+        var touchEvent = function (sender, type) {
+            switch (type){
+                case ccui.Widget.TOUCH_BEGAN:
+                    break;
+                case ccui.Widget.TOUCH_MOVED:
+                    break;
+                case ccui.Widget.TOUCH_ENDED:
+                    cc.LoaderScene.preload(g_resources, function () {
+                        cc.director.runScene(new GameScene(true));
+                    }, this);
+                    break;
+                case ccui.Widget.TOUCH_CANCELED:
+                    break;
+                default:
+                    break;
+            }
+        };
+        button = new ccui.Button();
+        button.setTouchEnabled(true);
+        button.loadTextures(res.shoot_png, res.shootpress_png, res.shootpress_png);
+        button.addTouchEventListener(touchEvent, this);
+        button.setPosition(cc.visibleRect.topRight);
+        this.addChild(button);
     }
 });
 

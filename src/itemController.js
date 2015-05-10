@@ -2,7 +2,8 @@
 var CONST_ITEM_TIME = 5;
 var CONST_ITEM_RANDOM_FACTOR = 0.5;
 
-ItemController = function(){
+ItemController = function(layer){
+    this.layer = layer;
     this.scheduleTime = 5;
     this.update = function(dt) {
         this.scheduleTime -= dt;
@@ -10,9 +11,10 @@ ItemController = function(){
             //show item
             var random_item_index = Math.ceil(Math.random()*4)-1;
             var item = new Item(random_item_index);
-            currentLayer.addChild(item,4);
+            this.layer.addChild(item,4);
             audioEngine.playEffect(res.audio_item_show);
             this.scheduleTime = CONST_ITEM_TIME*(1+CONST_ITEM_RANDOM_FACTOR*Math.random());
+            cc.log("I'm controller, i'm alive.");
         }
     };
 };
